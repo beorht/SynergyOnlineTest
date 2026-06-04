@@ -1,0 +1,181 @@
+<!-- templates/admin/import_students.html -->
+{% extends 'admin/base_site.html' %}
+{% load i18n %}
+
+{% block title %}Импорт студентов из Excel{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3><i class="fas fa-upload me-2"></i>Импорт студентов из Excel</h3>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="excel_file" class="form-label">Выберите Excel файл</label>
+                            <input type="file" 
+                                   class="form-control" 
+                                   id="excel_file" 
+                                   name="excel_file" 
+                                   accept=".xlsx,.xls" 
+                                   required>
+                            <div class="form-text">
+                                Поддерживаемые форматы: .xlsx, .xls
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-upload me-2"></i>Загрузить и импортировать
+                            </button>
+                            <a href="{% url 'export_students_template' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-download me-2"></i>Скачать шаблон
+                            </a>
+                        </div>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Требования к файлу:</h6>
+                        <ul class="mb-0">
+                            <li><strong>student_id</strong> - уникальный ID студента (обязательно)</li>
+                            <li><strong>first_name</strong> - имя студента (обязательно)</li>
+                            <li><strong>last_name</strong> - фамилия студента (обязательно)</li>
+                            <li><strong>group</strong> - группа студента (необязательно)</li>
+                            <li><strong>email</strong> - email студента (необязательно)</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Примечания:</h6>
+                        <ul class="mb-0">
+                            <li>При совпадении student_id данные будут обновлены</li>
+                            <li>Все студенты будут активированы автоматически</li>
+                            <li>Первая строка должна содержать заголовки колонок</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-history me-2"></i>История импортов</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_imports %}
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Студентов</th>
+                                        <th>Статус</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for import in recent_imports %}
+                                    <tr>
+                                        <td>
+                                            <small>{{ import.imported_at|date:"d.m.Y H:i" }}</small>
+                                        </td>
+                                        <td>{{ import.students_count }}</td>
+                                        <td>
+                                            {% if import.success %}
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-check"></i>
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger" 
+                                                      title="{{ import.error_message|truncatechars:100 }}">
+                                                    <i class="fas fa-times"></i>
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted">Импорты не найдены</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5><i class="fas fa-table me-2"></i>Пример структуры</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>student_id</th>
+                                    <th>first_name</th>
+                                    <th>last_name</th>
+                                    <th>group</th>
+                                    <th>email</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>STU001</td>
+                                    <td>Иван</td>
+                                    <td>Иванов</td>
+                                    <td>ИСТ-21</td>
+                                    <td>ivan@ex.com</td>
+                                </tr>
+                                <tr>
+                                    <td>STU002</td>
+                                    <td>Мария</td>
+                                    <td>Петрова</td>
+                                    <td>ИСТ-21</td>
+                                    <td>maria@ex.com</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: 10px;
+}
+.card-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px 10px 0 0 !important;
+}
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+.alert {
+    border-radius: 10px;
+    border: none;
+}
+</style>
+{% endblock %}

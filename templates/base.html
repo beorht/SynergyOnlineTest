@@ -1,0 +1,171 @@
+<!-- templates/base.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Система Онлайн-Экзаменов{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body {
+            /* background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); */
+            /* background: url("{% static 'images/back_2.png' %}") no-repeat center/cover fixed; */
+            background: url("{% static 'images/SynergyExam_StudentPage.png' %}") no-repeat center/cover fixed;
+            min-height: 100vh;
+        }
+        .main-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin: 20px 0;
+        }
+        .timer-danger {
+            color: #dc3545;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .question-card {
+            border-left: 4px solid #007bff;
+            margin-bottom: 20px;
+        }
+        .question-header {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .answer-option {
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .answer-option:hover {
+            background: #f8f9fa;
+        }
+        .answer-option.selected {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+        .btn-finish {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            color: white;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        /* Взять от сюда */
+        #snrg-logo {
+            /* width: 300px;
+            margin-bottom: 40px; */
+            width: 160px;
+            margin-right: 20px;
+        }
+        .navbar-brand {
+            color: black;
+        }
+        .navbar-nav.user-menu {
+            background: #48484d;
+            border-radius: 35px;
+        }
+        .container.main {
+            margin: 45px auto 0;
+        }
+        /* До вот сюда */
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: rgba(0,0,0,0.7);">
+        <div class="container">
+            <div class="d-flex w-100 align-items-center">
+                <div class="d-flex align-items-center navbar-brand">
+                    <img id="snrg-logo" src="{% static 'images/logo4.png'%}" alt="">
+
+                </div>
+
+                <div class="ms-auto d-flex align-items-center">
+                    {% if user.is_authenticated %}
+                    <div class="navbar-nav user-menu">
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i>
+                                {{ user.first_name|default:user.username }}
+                                {% if user.role == 'student' %}(ID: {{ user.student_id }}){% endif %}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                {% if user.role == 'student' %}
+                                    <li><a class="dropdown-item" href="{% url 'exam_list' %}">
+                                        <i class="fas fa-list me-2"></i>Мои экзамены
+                                    </a></li>
+                                {% else %}
+                                    <li><a class="dropdown-item" href="/admin/">
+                                        <i class="fas fa-cog me-2"></i>Админ-панель
+                                    </a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'logout' %}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Выйти
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if request.session.student_id %}
+                    <div class="navbar-nav user-menu">
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-1"></i>
+                                {{ request.session.student_name }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="{% url 'exam_list' %}">
+                                    <i class="fas fa-list me-2"></i>Мои экзамены
+                                </a></li>
+                                <li><a class="dropdown-item" href="{% url 'exam_results_list' %}">
+                                    <i class="fas fa-chart-line me-2"></i>Мои результаты
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'student_logout' %}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Выйти
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container main">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show mt-3" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %}
+        {% endblock %}
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block scripts %}
+    {% endblock %}
+</body>
+</html>
+
+
+

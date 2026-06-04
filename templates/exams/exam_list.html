@@ -1,0 +1,229 @@
+<!-- templates/exams/exam_list.html -->
+{% extends 'base.html' %}
+
+{% block title %}Мои экзамены{% endblock %}
+
+{% block content %}
+<div class="main-container p-4 mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-clipboard-list me-2"></i>Мои экзамены</h2>
+        <div class="text-muted">
+            <i class="fas fa-clock me-1"></i>
+            Текущее время: <span id="current-time"></span>
+        </div>
+    </div>
+
+    {% if exam_data %}
+        <div class="row">
+            {% for data in exam_data %}
+            <div class="col-md-6 mb-4">
+                <div class="card h-100 question-card 
+                    {% if data.status == 'upcoming' %}border-warning
+                    {% elif data.status == 'open' %}border-success
+                    {% else %}border-secondary{% endif %}">
+                    
+                    <div class="card-header question-header 
+                        {% if data.status == 'upcoming' %}bg-warning
+                        {% elif data.status == 'open' %}bg-success
+                        {% else %}bg-secondary{% endif %} text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1">{{ data.exam.name }}</h5>
+                                <small>{{ data.exam.course.name }}</small>
+                            </div>
+                            <div>
+                                {% if data.status == 'upcoming' %}
+                                    <span class="badge bg-light text-dark">
+                                        <i class="fas fa-clock"></i> Ожидается
+                                    </span>
+                                {% elif data.status == 'open' %}
+                                    <span class="badge bg-light text-success">
+                                        <i class="fas fa-play"></i> Открыт
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-light text-dark">
+                                        <i class="fas fa-lock"></i> Закрыт
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body">
+                        <p class="card-text">{{ data.exam.description|default:"Описание отсутствует" }}</p>
+                        
+                        <div class="row text-center mb-3">
+                            <div class="col-4">
+                                <small class="text-muted">Продолжительность</small>
+                                <div><strong>{{ data.exam.duration_minutes }} мин</strong></div>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted">Попытки</small>
+                                <div><strong>{{ data.attempts_made }}/{{ data.exam.attempts_allowed }}</strong></div>
+                            </div>
+                            <div class="col-4">
+                                <small class="text-muted">
+                                    {% if data.status == 'upcoming' %}До открытия
+                                    {% elif data.status == 'open' %}До закрытия
+                                    {% else %}Закрыт{% endif %}
+                                </small>
+                                <div class="time-until" 
+                                     data-target-time="{% if data.status == 'upcoming' %}{{ data.exam.open_time|date:'c' }}{% else %}{{ data.exam.close_time|date:'c' }}{% endif %}"
+                                     data-status="{{ data.status }}">
+                                    <strong>-</strong>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            {% if data.in_progress %}
+                                <a href="{% url 'take_exam' data.in_progress.id %}" class="btn btn-warning">
+                                    <i class="fas fa-play me-2"></i>Продолжить экзамен
+                                </a>
+                            {% elif data.can_access and data.status == 'open' %}
+                                <a href="{% url 'start_exam' data.exam.id %}" class="btn btn-success">
+                                    <i class="fas fa-play me-2"></i>Начать экзамен
+                                </a>
+                            {% elif data.max_attempts_reached %}
+                                <button class="btn btn-secondary" disabled>
+                                    <i class="fas fa-ban me-2"></i>Попытки исчерпаны
+                                </button>
+                            {% elif data.status == 'upcoming' %}
+                                <button class="btn btn-outline-warning" disabled>
+                                    <i class="fas fa-clock me-2"></i>Экзамен еще не начался
+                                </button>
+                            {% elif data.status == 'closed' %}
+                                <button class="btn btn-outline-secondary" disabled>
+                                    <i class="fas fa-lock me-2"></i>Экзамен закрыт
+                                </button>
+                            {% else %}
+                                <button class="btn btn-outline-secondary" disabled>
+                                    <i class="fas fa-ban me-2"></i>Недоступен
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer text-muted">
+                        <small>
+                            {% if data.status == 'upcoming' %}
+                                <i class="fas fa-calendar me-1"></i>
+                                Открывается: {{ data.exam.open_time|date:"d.m.Y H:i" }}
+                            {% elif data.status == 'open' %}
+                                <i class="fas fa-calendar me-1"></i>
+                                Закрывается: {{ data.exam.close_time|date:"d.m.Y H:i" }}
+                            {% else %}
+                                <i class="fas fa-calendar me-1"></i>
+                                Закрыт: {{ data.exam.close_time|date:"d.m.Y H:i" }}
+                            {% endif %}
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Легенда статусов -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>Статусы экзаменов:</h6>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <span class="badge bg-warning me-2">Ожидается</span> - экзамен еще не начался
+                        </div>
+                        <div class="col-md-4">
+                            <span class="badge bg-success me-2">Открыт</span> - можно проходить экзамен
+                        </div>
+                        <div class="col-md-4">
+                            <span class="badge bg-secondary me-2">Закрыт</span> - время прохождения истекло
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+            <h4>Нет экзаменов</h4>
+            <p class="text-muted">Вы не записаны ни на один курс или экзамены отсутствуют.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateCurrentTime() {
+    const now = new Date();
+    document.getElementById('current-time').textContent = now.toLocaleString('ru-RU');
+}
+
+function updateTimeUntil() {
+    document.querySelectorAll('.time-until').forEach(element => {
+        const targetTime = new Date(element.dataset.targetTime);
+        const status = element.dataset.status;
+        const now = new Date();
+        const diff = targetTime - now;
+        
+        if (diff > 0) {
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            
+            let timeString = '';
+            if (days > 0) {
+                timeString = `${days}д ${hours}ч`;
+            } else if (hours > 0) {
+                timeString = `${hours}ч ${minutes}м`;
+            } else {
+                timeString = `${minutes}м`;
+            }
+            
+            element.innerHTML = `<strong>${timeString}</strong>`;
+        } else {
+            if (status === 'upcoming') {
+                element.innerHTML = '<strong class="text-success">Открыт</strong>';
+                // Перезагружаем страницу если экзамен открылся
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                element.innerHTML = '<strong class="text-danger">Закрыт</strong>';
+            }
+        }
+    });
+}
+
+// Обновляем время каждую секунду
+updateCurrentTime();
+updateTimeUntil();
+setInterval(updateCurrentTime, 1000);
+setInterval(updateTimeUntil, 60000);
+
+// Проверяем статус каждые 30 секунд для обновления страницы
+setInterval(() => {
+    // Проверяем, не изменился ли статус экзаменов
+    const now = new Date();
+    let needReload = false;
+    
+    document.querySelectorAll('.time-until').forEach(element => {
+        const targetTime = new Date(element.dataset.targetTime);
+        const status = element.dataset.status;
+        
+        // Если экзамен должен был открыться
+        if (status === 'upcoming' && now >= targetTime) {
+            needReload = true;
+        }
+        
+        // Если экзамен должен был закрыться
+        if (status === 'open' && now >= targetTime) {
+            needReload = true;
+        }
+    });
+    
+    if (needReload) {
+        location.reload();
+    }
+}, 30000);
+</script>
+{% endblock %}

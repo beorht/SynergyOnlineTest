@@ -1,0 +1,605 @@
+<!-- templates/exams/take_exam.html -->
+{% extends 'base.html' %}
+
+{% block title %}{{ exam_result.exam.name }}{% endblock %}
+
+{% block content %}
+<div class="main-container p-4 mt-2">
+    <!-- Заголовок экзамена -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>{{ exam_result.exam.name }}</h2>
+            <p class="text-muted mb-0">{{ exam_result.exam.course.name }} | Попытка {{ exam_result.attempt_number }}</p>
+        </div>
+        <div class="text-end">
+            <div class="card border-primary">
+                <div class="card-body p-3 text-center">
+                    <h4 class="mb-1" id="timer">--:--:--</h4>
+                    <small class="text-muted">Осталось времени</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Прогресс -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between mb-2">
+            <span>Прогресс: <span id="answered-count">0</span>/{{ student_answers|length }}</span>
+            <span>Отвечено: <span id="progress-percent">0%</span></span>
+        </div>
+        <div class="progress">
+            <div class="progress-bar" role="progressbar" id="progress-bar" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Отладочная информация (временно) -->
+    <div class="alert alert-info" style="display: none;" id="debug-info">
+        Debug: Всего вопросов: {{ student_answers|length }}<br>
+        {% for sa in student_answers %}
+            Вопрос {{ forloop.counter }}: {{ sa.question.answers.all|length }} вариантов ответа<br>
+        {% endfor %}
+    </div>
+
+    <!-- Вопросы -->
+    <form id="exam-form">
+        {% csrf_token %}
+        {% for student_answer in student_answers %}
+        <div class="question-card card mb-4" data-question-id="{{ student_answer.id }}">
+            <div class="card-header question-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        Вопрос {{ forloop.counter }} 
+                        <span class="badge bg-{{ student_answer.question.difficulty|yesno:'danger,warning,success' }} ms-2">
+                            {{ student_answer.question.get_difficulty_display }}
+                        </span>
+                    </h5>
+                    <small class="text-muted">
+                        {% if student_answer.question.subject %}
+                            {{ student_answer.question.subject.name }}
+                        {% else %}
+                            Без предмета
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Текст вопроса -->
+                <div class="question-text mb-4">
+                    
+                    <!-- Вот это надо менять -->
+                    {% if student_answer.question.text_md %}
+                        <script>
+                            console.log( "{{ student_answer.question.text }}" );
+                        </script>
+                        <div data-markdown="{{ student_answer.question.text_md }}">
+                            {{ student_answer.question.text_md|safe }}
+                        </div>
+                        {% if student_answer.question.text %}
+                            <script>
+                                console.log( "{{ student_answer.question.text }}" );
+                            </script>
+                            <!-- <div data-markdown="{{ student_answer.question.text }}">
+                            </div> -->
+                            <strong id="dop-teks">"{{ student_answer.question.text|safe }}"</strong>
+                        {% endif %}
+                    {% else %}
+                        {{ student_answer.question.text|default:"Текст вопроса не задан" }}
+                    {% endif %}
+
+                    <!-- До этого -->
+                </div>
+                <!-- Варианты ответов -->
+                {% if student_answer.question.question_type == 'single_choice' %}
+                    <div class="answer-options">
+                        <h6 class="text-muted mb-3">Выберите один правильный ответ:</h6>
+                        {% for answer in student_answer.question.answers.all %}
+                       
+                        <div class="answer-option mb-2 p-2 border rounded" data-answer-type="single">
+                            <label class="form-check-label w-100 mb-0 cursor-pointer">
+                                <input type="radio" 
+                                       name="question_{{ student_answer.id }}" 
+                                       value="{{ answer.id }}"
+                                       class="form-check-input me-2"
+                                       {% if answer in student_answer.selected_answers.all %}checked{% endif %}>
+                                <span class="answer-text">
+                                    {% if answer.text_md %}
+                                        <div data-markdown="{{ answer.text_md }}">{{ answer.text_md|safe }}</div>
+                                    {% else %}
+                                        {{ answer.text|default:"Вариант ответа" }}
+                                    {% endif %}
+                                </span>
+                            </label>
+                        </div>
+                        {% empty %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Варианты ответов для этого вопроса не найдены
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                {% elif student_answer.question.question_type == 'multiple_choice' %}
+                    <div class="answer-options">
+                        <h6 class="text-muted mb-3">Выберите все правильные ответы:</h6>
+                        {% for answer in student_answer.question.answers.all %}
+                        <div class="answer-option mb-2 p-2 border rounded" data-answer-type="multiple">
+                            <label class="form-check-label w-100 mb-0 cursor-pointer">
+                                <input type="checkbox" 
+                                       name="question_{{ student_answer.id }}" 
+                                       value="{{ answer.id }}"
+                                       class="form-check-input me-2"
+                                       {% if answer in student_answer.selected_answers.all %}checked{% endif %}>
+                                <span class="answer-text">
+                                    {% if answer.text_md %}
+                                        <div data-markdown="{{ answer.text_md }}">{{ answer.text_md|safe }}</div>
+                                    {% else %}
+                                        {{ answer.text|default:"Вариант ответа" }}
+                                    {% endif %}
+                                </span>
+                            </label>
+                        </div>
+                        {% empty %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Варианты ответов для этого вопроса не найдены
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                {% elif student_answer.question.question_type == 'open' or student_answer.question.question_type == 'text' %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-3">Введите ваш ответ:</h6>
+                        <textarea class="form-control" 
+                                  name="question_{{ student_answer.id }}_text"
+                                  rows="5" 
+                                  placeholder="Введите ваш ответ...">{{ student_answer.answer_text }}</textarea>
+                    </div>
+
+                {% else %}
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Неизвестный тип вопроса: {{ student_answer.question.question_type }}
+                        <br><small>Поддерживаемые типы: single, single_choice, multiple, multiple_choice, open, text</small>
+                    </div>
+                {% endif %}
+
+                <!-- Отладочная информация для каждого вопроса -->
+                <small class="text-muted d-none debug-question-info">
+                    ID вопроса: {{ student_answer.question.id }}, 
+                    Тип: {{ student_answer.question.question_type }}, 
+                    Ответов: {{ student_answer.question.answers.all|length }}
+                </small>
+            </div>
+        </div>
+        {% empty %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Вопросы для этого экзамена не найдены
+        </div>
+        {% endfor %}
+    </form>
+
+    <!-- Кнопки управления -->
+    <div class="d-flex justify-content-between mt-4">
+        <div>
+            <button type="button" class="btn btn-outline-primary" id="save-progress">
+                <i class="fas fa-save me-2"></i>Сохранить прогресс
+            </button>
+            <button type="button" class="btn btn-outline-info" id="show-debug" onclick="toggleDebug()">
+                <i class="fas fa-bug me-2"></i>Показать отладку
+            </button>
+        </div>
+        
+        <button type="button" class="btn btn-success" id="finish-exam">
+            <i class="fas fa-flag-checkered me-2"></i>Завершить экзамен
+        </button>
+    </div>
+
+    <!-- Модальное окно подтверждения -->
+    <div class="modal fade" id="finishModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Завершить экзамен?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Вы уверены, что хотите завершить экзамен?</p>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        После завершения вы не сможете изменить ответы!
+                    </div>
+                    <p>Отвечено на <span id="modal-answered">0</span> из {{ student_answers|length }} вопросов</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-danger" id="confirm-finish">
+                        <i class="fas fa-flag-checkered me-2"></i>Завершить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.cursor-pointer {
+    cursor: pointer;
+}
+
+#dop-tekst {
+    color: black;
+}
+
+.answer-option:hover {
+    background-color: #f8f9fa;
+}
+
+.answer-option input:checked + .answer-text {
+    font-weight: 500;
+}
+
+.timer-danger {
+    color: #dc3545 !important;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+</style>
+
+<script>
+let examResultId = {{ exam_result.id }};
+let timeRemaining = {{ time_remaining.total_seconds|floatformat:0 }};
+let autoSaveInterval;
+let timerInterval;
+
+// Функция для отладки
+function toggleDebug() {
+    const debugInfo = document.getElementById('debug-info');
+    const debugQuestions = document.querySelectorAll('.debug-question-info');
+    
+    if (debugInfo.style.display === 'none') {
+        debugInfo.style.display = 'block';
+        debugQuestions.forEach(el => el.classList.remove('d-none'));
+        document.getElementById('show-debug').innerHTML = '<i class="fas fa-bug me-2"></i>Скрыть отладку';
+    } else {
+        debugInfo.style.display = 'none';
+        debugQuestions.forEach(el => el.classList.add('d-none'));
+        document.getElementById('show-debug').innerHTML = '<i class="fas fa-bug me-2"></i>Показать отладку';
+    }
+}
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Инициализация экзамена...');
+    console.log('ExamResultId:', examResultId);
+    console.log('Время:', timeRemaining);
+    
+    initializeMarkdown();
+    initializeMathJax();
+    updateProgress();
+    startTimer();
+    startAutoSave();
+    
+    // Обработчики событий
+    document.addEventListener('change', handleAnswerChange);
+    document.getElementById('save-progress').addEventListener('click', saveAllAnswers);
+    document.getElementById('finish-exam').addEventListener('click', showFinishModal);
+    document.getElementById('confirm-finish').addEventListener('click', finishExam);
+    
+    // Отладочная информация
+    const questionCards = document.querySelectorAll('.question-card');
+    console.log('Найдено вопросов:', questionCards.length);
+});
+
+// Инициализация Markdown
+function initializeMarkdown() {
+    if (typeof marked !== 'undefined') {
+        document.querySelectorAll('[data-markdown]').forEach(element => {
+            try {
+                const markdown = element.dataset.markdown;
+                element.innerHTML = marked.parse(markdown);
+            } catch (e) {
+                console.warn('Ошибка парсинга markdown:', e);
+            }
+        });
+    }
+}
+
+// Инициализация MathJax
+function initializeMathJax() {
+    if (window.MathJax) {
+        MathJax.typesetPromise();
+    }
+}
+
+// Таймер
+function startTimer() {
+    timerInterval = setInterval(function() {
+        if (timeRemaining <= 0) {
+            timeExpired();
+            return;
+        }
+        
+        const hours = Math.floor(timeRemaining / 3600);
+        const minutes = Math.floor((timeRemaining % 3600) / 60);
+        const seconds = timeRemaining % 60;
+        
+        const timerElement = document.getElementById('timer');
+        timerElement.textContent = 
+            `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Предупреждение при малом времени
+        if (timeRemaining <= 300) { // 5 минут
+            timerElement.classList.add('timer-danger');
+        }
+        
+        timeRemaining--;
+    }, 1000);
+}
+
+// Время истекло
+function timeExpired() {
+    clearInterval(timerInterval);
+    clearInterval(autoSaveInterval);
+    
+    alert('Время экзамена истекло! Экзамен будет завершен автоматически.');
+    
+    // Сохраняем последние ответы и завершаем
+    saveAllAnswers().then(() => {
+        window.location.href = `/exams/results/${examResultId}/`;
+    });
+}
+
+// Автосохранение
+function startAutoSave() {
+    autoSaveInterval = setInterval(saveAllAnswers, 30000); // каждые 30 секунд
+}
+
+// Обновление прогресса
+function updateProgress() {
+    const totalQuestions = document.querySelectorAll('.question-card').length;
+    let answeredCount = 0;
+    
+    document.querySelectorAll('.question-card').forEach(card => {
+        const hasAnswer = checkQuestionAnswered(card);
+        if (hasAnswer) answeredCount++;
+    });
+    
+    const percentage = Math.round((answeredCount / totalQuestions) * 100);
+    
+    document.getElementById('answered-count').textContent = answeredCount;
+    document.getElementById('progress-percent').textContent = percentage + '%';
+    document.getElementById('progress-bar').style.width = percentage + '%';
+    document.getElementById('modal-answered').textContent = answeredCount;
+}
+
+// Проверка, отвечен ли вопрос
+function checkQuestionAnswered(questionCard) {
+    const inputs = questionCard.querySelectorAll('input, textarea');
+    
+    for (let input of inputs) {
+        if (input.type === 'radio' || input.type === 'checkbox') {
+            if (input.checked) return true;
+        } else if (input.type === 'textarea' || input.type === 'text') {
+            if (input.value.trim()) return true;
+        }
+    }
+    
+    return false;
+}
+
+// Обработка изменения ответа
+function handleAnswerChange(event) {
+    const target = event.target;
+    if (target.matches('input, textarea')) {
+        updateProgress();
+        
+        // Сохранение конкретного ответа
+        const questionCard = target.closest('.question-card');
+        if (questionCard) {
+            saveAnswer(questionCard);
+        }
+    }
+}
+
+// Сохранение ответа на вопрос
+async function saveAnswer(questionCard) {
+    const questionId = questionCard.dataset.questionId;
+    const answerData = collectAnswerData(questionCard);
+    
+    console.log('Сохранение ответа для вопроса:', questionId, answerData);
+    
+    try {
+        const response = await fetch(`/exams/answer/${examResultId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                student_answer_id: questionId,
+                ...answerData
+            })
+        });
+        
+        const result = await response.json();
+        if (!result.success) {
+            console.error('Ошибка сохранения:', result.error);
+        } else {
+            console.log('Ответ сохранен успешно');
+        }
+    } catch (error) {
+        console.error('Ошибка сети:', error);
+    }
+}
+
+// Сбор данных ответа - ИСПРАВЛЕННАЯ ВЕРСИЯ
+function collectAnswerData(questionCard) {
+    const answerData = {
+        answer_ids: [],
+        answer_text: ''
+    };
+    
+    // Checkbox и radio
+    questionCard.querySelectorAll('input[type="checkbox"]:checked, input[type="radio"]:checked')
+        .forEach(input => {
+            answerData.answer_ids.push(parseInt(input.value));
+        });
+    
+    // Textarea для открытых вопросов
+    const textarea = questionCard.querySelector('textarea');
+    if (textarea) {
+        answerData.answer_text = textarea.value.trim();
+    }
+    
+    // Также проверяем input[type="text"] если есть
+    const textInput = questionCard.querySelector('input[type="text"]');
+    if (textInput && !answerData.answer_text) {
+        answerData.answer_text = textInput.value.trim();
+    }
+    
+    console.log('Собранные данные для вопроса:', questionCard.dataset.questionId, answerData);
+    
+    return answerData;
+}
+
+// Проверка, отвечен ли вопрос - ИСПРАВЛЕННАЯ ВЕРСИЯ
+function checkQuestionAnswered(questionCard) {
+    // Проверяем radio и checkbox
+    const checkedInputs = questionCard.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked');
+    if (checkedInputs.length > 0) {
+        return true;
+    }
+    
+    // Проверяем textarea для открытых вопросов
+    const textarea = questionCard.querySelector('textarea');
+    if (textarea && textarea.value.trim()) {
+        return true;
+    }
+    
+    // Проверяем text input если есть
+    const textInput = questionCard.querySelector('input[type="text"]');
+    if (textInput && textInput.value.trim()) {
+        return true;
+    }
+    
+    return false;
+}
+
+// Сохранение ответа на вопрос - С ДОПОЛНИТЕЛЬНОЙ ОТЛАДКОЙ
+async function saveAnswer(questionCard) {
+    const questionId = questionCard.dataset.questionId;
+    const answerData = collectAnswerData(questionCard);
+    
+    console.log('Сохранение ответа для вопроса:', questionId, answerData);
+    
+    // Проверяем, есть ли что сохранять
+    if (answerData.answer_ids.length === 0 && !answerData.answer_text) {
+        console.log('Нет данных для сохранения');
+        return;
+    }
+    
+    try {
+        const requestBody = {
+            student_answer_id: questionId,
+            ...answerData
+        };
+        
+        console.log('Отправляем запрос:', requestBody);
+        
+        const response = await fetch(`/exams/answer/${examResultId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        const result = await response.json();
+        console.log('Ответ сервера:', result);
+        
+        if (!result.success) {
+            console.error('Ошибка сохранения:', result.error);
+        } else {
+            console.log('Ответ сохранен успешно');
+        }
+    } catch (error) {
+        console.error('Ошибка сети:', error);
+    }
+}
+// Сохранение всех ответов
+async function saveAllAnswers() {
+    console.log('Сохранение всех ответов...');
+    const promises = [];
+    
+    document.querySelectorAll('.question-card').forEach(questionCard => {
+        promises.push(saveAnswer(questionCard));
+    });
+    
+    await Promise.all(promises);
+    
+    // Показываем уведомление
+    const saveBtn = document.getElementById('save-progress');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.innerHTML = '<i class="fas fa-check me-2"></i>Сохранено';
+    saveBtn.classList.add('btn-success');
+    saveBtn.classList.remove('btn-outline-primary');
+    
+    setTimeout(() => {
+        saveBtn.innerHTML = originalText;
+        saveBtn.classList.remove('btn-success');
+        saveBtn.classList.add('btn-outline-primary');
+    }, 2000);
+}
+
+// Показать модальное окно завершения
+function showFinishModal() {
+    updateProgress();
+    const modal = new bootstrap.Modal(document.getElementById('finishModal'));
+    modal.show();
+}
+
+// Завершение экзамена
+async function finishExam() {
+    try {
+        // Сохраняем все ответы
+        await saveAllAnswers();
+        
+        // Отправляем запрос на завершение
+        const response = await fetch(`/exams/finish/${examResultId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({
+                exam_result_id: examResultId
+            })
+        });
+
+        if (response.ok) {
+            clearInterval(timerInterval);
+            clearInterval(autoSaveInterval);
+            window.location.href = `/exams/results/${examResultId}/`;
+        } else {
+            alert('Ошибка при завершении экзамена. Попробуйте еще раз.');
+        }
+    } catch (error) {
+        console.error('Ошибка:', error);
+        alert('Ошибка сети. Попробуйте еще раз.');
+    }
+}
+
+// Предотвращаем случайное закрытие страницы
+window.addEventListener('beforeunload', function(e) {
+    e.preventDefault();
+    e.returnValue = 'Вы уверены, что хотите покинуть страницу? Прогресс может быть потерян.';
+});
+</script>
+{% endblock %}

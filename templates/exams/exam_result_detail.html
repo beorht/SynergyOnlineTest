@@ -1,0 +1,276 @@
+<!-- templates/exams/exam_result_detail.html -->
+{% extends 'base.html' %}
+
+{% block title %}Результаты: {{ exam_result.exam.name }}{% endblock %}
+
+{% block content %}
+<div class="main-container p-4 mt-4">
+    <!-- Заголовок результатов -->
+    <div class="text-center mb-4">
+        <h2><i class="fas fa-chart-line me-2"></i>Результаты экзамена</h2>
+        <h4 class="text-muted">{{ exam_result.exam.name }}</h4>
+        <p class="text-muted mb-0">{{ exam_result.exam.course.name }} | Попытка {{ exam_result.attempt_number }}</p>
+    </div>
+
+    <!-- Основная статистика -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <i class="fas fa-star fa-2x text-warning mb-2"></i>
+                    <h4>{{ exam_result.score }}/{{ exam_result.max_score }}</h4>
+                    <p class="text-muted mb-0">Общий балл</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <i class="fas fa-percentage fa-2x text-success mb-2"></i>
+                    <h4>{{ exam_result.percentage_score }}%</h4>
+                    <p class="text-muted mb-0">Процент</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <i class="fas fa-clock fa-2x text-info mb-2"></i>
+                    <h4 id="duration">--:--</h4>
+                    <p class="text-muted mb-0">Время прохождения</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <i class="fas fa-flag fa-2x text-primary mb-2"></i>
+                    <h4>{{ exam_result.get_status_display }}</h4>
+                    <p class="text-muted mb-0">Статус</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика по предметам -->
+    {% if subject_stats %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-chart-bar me-2"></i>Результаты по предметам</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                {% for subject_name, stats in subject_stats.items %}
+                <div class="col-md-6 mb-3">
+                    <div class="border rounded p-3">
+                        <h6 class="mb-2">{{ subject_name }}</h6>
+                        <div class="d-flex justify-content-between">
+                            <span>Правильных ответов:</span>
+                            <strong>{{ stats.correct }}/{{ stats.total }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span>Баллов получено:</span>
+                            <strong>{{ stats.points }}</strong>
+                        </div>
+                        <div class="progress mt-2">
+                            <div class="progress-bar" 
+                                 style="width: {% widthratio stats.correct stats.total 100 %}%">
+                            </div>
+                        </div>
+                        <small class="text-muted">
+                            {% widthratio stats.correct stats.total 100 %}% правильных ответов
+                        </small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Детальный разбор ответов -->
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="fas fa-list-check me-2"></i>Детальный разбор ответов</h5>
+        </div>
+        <div class="card-body">
+            {% for student_answer in student_answers %}
+            <div class="question-review mb-4 p-3 border rounded">
+                <!-- Заголовок вопроса -->
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="mb-1">
+                            Вопрос {{ forloop.counter }}
+                            {% if student_answer.is_correct %}
+                                <span class="badge bg-success ms-2">
+                                    <i class="fas fa-check me-1"></i>Правильно
+                                </span>
+                            {% elif student_answer.is_correct == False %}
+                                <span class="badge bg-danger ms-2">
+                                    <i class="fas fa-times me-1"></i>Неправильно
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning ms-2">
+                                    <i class="fas fa-clock me-1"></i>На проверке
+                                </span>
+                            {% endif %}
+                        </h6>
+                        <small class="text-muted">
+                            {{ student_answer.question.subject.name }} | 
+                            {{ student_answer.question.get_difficulty_display }} |
+                            {{ student_answer.points_earned|default:0 }} баллов
+                        </small>
+                    </div>
+                </div>
+
+                <!-- Текст вопроса -->
+                <div class="question-text mb-3 p-3 bg-light rounded">
+                    <div data-markdown="{{ student_answer.question.text_md }}">
+                        {{ student_answer.question.text_md }}
+                    </div>
+                </div>
+
+                <!-- Ответы -->
+                {% if student_answer.question.question_type != 'open' %}
+                    <div class="answers-review">
+                        <h6>Варианты ответов:</h6>
+                        {% for answer in student_answer.question.answers.all %}
+                        <div class="answer-review p-2 mb-2 rounded
+                            {% if answer.is_correct %}bg-success bg-opacity-10 border-success{% endif %}
+                            {% if answer in student_answer.selected_answers.all and not answer.is_correct %}bg-danger bg-opacity-10 border-danger{% endif %}
+                            {% if answer not in student_answer.selected_answers.all and not answer.is_correct %}bg-light{% endif %}
+                        ">
+                            <div class="d-flex align-items-center">
+                                <!-- Иконки статуса -->
+                                {% if answer.is_correct %}
+                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                {% elif answer in student_answer.selected_answers.all %}
+                                    <i class="fas fa-times-circle text-danger me-2"></i>
+                                {% else %}
+                                    <i class="far fa-circle text-muted me-2"></i>
+                                {% endif %}
+
+                                <!-- Текст ответа -->
+                                <div class="flex-grow-1" data-markdown="{{ answer.text_md }}">
+                                    {{ answer.text_md }}
+                                </div>
+
+                                <!-- Метки -->
+                                <div class="ms-2">
+                                    {% if answer.is_correct %}
+                                        <span class="badge bg-success">Правильный</span>
+                                    {% endif %}
+                                    {% if answer in student_answer.selected_answers.all %}
+                                        <span class="badge bg-primary">Ваш выбор</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <!-- Открытый ответ -->
+                    <div class="open-answer-review">
+                        <h6>Ваш ответ:</h6>
+                        <div class="p-3 bg-light rounded">
+                            {% if student_answer.answer_text %}
+                                {{ student_answer.answer_text|linebreaks }}
+                            {% else %}
+                                <em class="text-muted">Ответ не предоставлен</em>
+                            {% endif %}
+                        </div>
+                        {% if student_answer.is_correct == None %}
+                        <small class="text-muted mt-2 d-block">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Открытые вопросы проверяются преподавателем вручную
+                        </small>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="text-center mt-4">
+        <a href="{% url 'exam_list' %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left me-2"></i>К списку экзаменов
+        </a>
+        
+        <a href="{% url 'exam_results_list' %}" class="btn btn-outline-primary ms-2">
+            <i class="fas fa-history me-2"></i>История результатов
+        </a>
+        
+        <button class="btn btn-outline-secondary ms-2" onclick="window.print()">
+            <i class="fas fa-print me-2"></i>Печать результатов
+        </button>
+    </div>
+</div>
+
+<!-- Скрытые данные для JavaScript -->
+<script>
+    const examStartTime = new Date('{{ exam_result.start_time|date:"c" }}');
+    const examEndTime = new Date('{{ exam_result.end_time|date:"c" }}');
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    initializeMarkdown();
+    initializeMathJax();
+    calculateDuration();
+});
+
+// Инициализация Markdown
+function initializeMarkdown() {
+    document.querySelectorAll('[data-markdown]').forEach(element => {
+        const markdown = element.dataset.markdown;
+        element.innerHTML = marked.parse(markdown);
+    });
+}
+
+// Инициализация MathJax
+function initializeMathJax() {
+    if (window.MathJax) {
+        MathJax.typesetPromise();
+    }
+}
+
+// Расчет времени прохождения
+function calculateDuration() {
+    if (examStartTime && examEndTime) {
+        const duration = examEndTime - examStartTime;
+        const hours = Math.floor(duration / (1000 * 60 * 60));
+        const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((duration % (1000 * 60)) / 1000);
+        
+        document.getElementById('duration').textContent = 
+            `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+}
+
+// Стили для печати
+const printStyles = `
+    @media print {
+        body * { visibility: hidden; }
+        .main-container, .main-container * { visibility: visible; }
+        .main-container { position: absolute; left: 0; top: 0; width: 100%; }
+        .btn { display: none !important; }
+        .navbar { display: none !important; }
+        .card { break-inside: avoid; }
+        .question-review { break-inside: avoid; margin-bottom: 20px; }
+    }
+`;
+
+// Добавляем стили для печати
+const styleSheet = document.createElement('style');
+styleSheet.textContent = printStyles;
+document.head.appendChild(styleSheet);
+</script>
+{% endblock %}
