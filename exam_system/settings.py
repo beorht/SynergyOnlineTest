@@ -16,6 +16,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'exams',  # Основное приложение
+    'teachers',
 ]
 
 MIDDLEWARE = [

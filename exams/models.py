@@ -211,6 +211,12 @@ class ExamResult(models.Model):
         elapsed = timezone.now() - self.start_time
         return max(self.exam.duration - elapsed, timedelta(0))
 
+    def recalculate_score(self):
+        total = sum(sa.effective_points for sa in self.student_answers.all())
+        self.score = total
+        self.save(update_fields=['score'])
+
+
 class StudentAnswer(models.Model):
     exam_result = models.ForeignKey(ExamResult, on_delete=models.CASCADE, related_name='student_answers')
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
@@ -219,14 +225,39 @@ class StudentAnswer(models.Model):
     is_correct = models.BooleanField(default=False)
     points_earned = models.IntegerField(default=0)
     answered_at = models.DateTimeField(auto_now=True)
-    
+    teacher_score = models.FloatField(null=True, blank=True, verbose_name='Балл преподавателя')
+    teacher_comment = models.TextField(blank=True, verbose_name='Комментарий преподавателя')
+    reviewed_by = models.ForeignKey(
+        'teachers.Teacher', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='reviewed_answers'
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         unique_together = ['exam_result', 'question']
         verbose_name = "Ответ студента"
         verbose_name_plural = "Ответы студентов"
-    
+
     def __str__(self):
         return f"{self.exam_result.student.full_name} - {self.question.text_md[:30] if self.question.text_md else 'Без текста'}..."
+
+    @property
+    def effective_points(self):
+        if self.teacher_score is not None:
+            return self.teacher_score
+        return self.points_earned or 0
+
+
+class AnswerOrder(models.Model):
+    student_answer = models.OneToOneField(
+        StudentAnswer, on_delete=models.CASCADE, related_name='answer_order'
+    )
+    order = models.JSONField()
+
+    class Meta:
+        verbose_name = 'Порядок ответов'
+        verbose_name_plural = 'Порядки ответов'
+
 
 # Модель для импорта студентов из Excel
 class StudentImport(models.Model):
