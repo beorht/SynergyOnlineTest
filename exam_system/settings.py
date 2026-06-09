@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'your-secret-key-here'
 DEBUG = True
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.100.38']
+ALLOWED_HOSTS = ['*'] if DEBUG else ['yourdomain.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -96,8 +96,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # AUTH_USER_MODEL = 'exams.User'
 
 # Настройки сессий
-SESSION_COOKIE_AGE = 7200  # 2 часа
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 28800  # 8 часов — совпадает с set_expiry() в views.py
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # сессия живёт после закрытия браузера
 SESSION_SAVE_EVERY_REQUEST = True
 
 # Настройки для автосохранения

@@ -82,14 +82,59 @@ uv run python manage.py import_from_sqlite --source db.sqlite3.db
 uv run python manage.py import_from_sqlite --source db.sqlite3 --clear
 ```
 
-### 7. Запуск сервера разработки
+### 7. Запуск сервера
 
-```bash
-uv run uvicorn exam_system.asgi:application --reload --port 8000
+#### Development (режим разработки)
+
+Переменные окружения для dev:
+
+```
+DEBUG=True
+DB_NAME=exam_system
+DB_USER=postgres
+DB_PASSWORD=
+DB_HOST=localhost
+DB_PORT=5432
 ```
 
-После этого проект будет доступен по адресу:
+```bash
+DEBUG=True uv run uvicorn exam_system.asgi:application --reload --port 8000
+```
+
+- Подробные ошибки отображаются в браузере
+- Сервер автоматически перезапускается при изменении кода
+- Статические файлы раздаются Django автоматически
+
+После запуска проект доступен по адресу:
 👉 [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
+👉 Админ-панель: [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
+
+#### Production (боевой режим)
+
+Переменные окружения для production:
+
+```
+DEBUG=False
+SECRET_KEY=your-strong-random-secret-key
+DB_NAME=exam_system
+DB_USER=postgres
+DB_PASSWORD=your_db_password
+DB_HOST=localhost
+DB_PORT=5432
+ALLOWED_HOSTS=yourdomain.com
+```
+
+```bash
+# 1. Собрать статические файлы
+uv run python manage.py collectstatic --noinput
+
+# 2. Запустить с несколькими воркерами
+DEBUG=False uv run uvicorn exam_system.asgi:application --workers 4 --port 8000
+```
+
+- Ошибки пользователю не показываются
+- Статику рекомендуется раздавать через Nginx
+- `SECRET_KEY` обязательно должен быть уникальным и храниться в `.env`
 
 ---
 

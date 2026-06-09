@@ -343,16 +343,28 @@ function startTimer() {
 }
 
 // Время истекло
-function timeExpired() {
+async function timeExpired() {
     clearInterval(timerInterval);
     clearInterval(autoSaveInterval);
-    
+
     alert('Время экзамена истекло! Экзамен будет завершен автоматически.');
-    
-    // Сохраняем последние ответы и завершаем
-    saveAllAnswers().then(() => {
-        window.location.href = `/exams/results/${examResultId}/`;
-    });
+
+    await saveAllAnswers();
+
+    try {
+        await fetch(`/exams/finish/${examResultId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify({ exam_result_id: examResultId })
+        });
+    } catch (e) {
+        console.error('Ошибка завершения по таймауту:', e);
+    }
+
+    window.location.href = `/exams/results/${examResultId}/`;
 }
 
 // Автосохранение
@@ -364,33 +376,17 @@ function startAutoSave() {
 function updateProgress() {
     const totalQuestions = document.querySelectorAll('.question-card').length;
     let answeredCount = 0;
-    
+
     document.querySelectorAll('.question-card').forEach(card => {
-        const hasAnswer = checkQuestionAnswered(card);
-        if (hasAnswer) answeredCount++;
+        if (checkQuestionAnswered(card)) answeredCount++;
     });
-    
+
     const percentage = Math.round((answeredCount / totalQuestions) * 100);
-    
+
     document.getElementById('answered-count').textContent = answeredCount;
     document.getElementById('progress-percent').textContent = percentage + '%';
     document.getElementById('progress-bar').style.width = percentage + '%';
     document.getElementById('modal-answered').textContent = answeredCount;
-}
-
-// Проверка, отвечен ли вопрос
-function checkQuestionAnswered(questionCard) {
-    const inputs = questionCard.querySelectorAll('input, textarea');
-    
-    for (let input of inputs) {
-        if (input.type === 'radio' || input.type === 'checkbox') {
-            if (input.checked) return true;
-        } else if (input.type === 'textarea' || input.type === 'text') {
-            if (input.value.trim()) return true;
-        }
-    }
-    
-    return false;
 }
 
 // Обработка изменения ответа
@@ -398,47 +394,12 @@ function handleAnswerChange(event) {
     const target = event.target;
     if (target.matches('input, textarea')) {
         updateProgress();
-        
-        // Сохранение конкретного ответа
         const questionCard = target.closest('.question-card');
-        if (questionCard) {
-            saveAnswer(questionCard);
-        }
+        if (questionCard) saveAnswer(questionCard);
     }
 }
 
-// Сохранение ответа на вопрос
-async function saveAnswer(questionCard) {
-    const questionId = questionCard.dataset.questionId;
-    const answerData = collectAnswerData(questionCard);
-    
-    console.log('Сохранение ответа для вопроса:', questionId, answerData);
-    
-    try {
-        const response = await fetch(`/exams/answer/${examResultId}/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-            },
-            body: JSON.stringify({
-                student_answer_id: questionId,
-                ...answerData
-            })
-        });
-        
-        const result = await response.json();
-        if (!result.success) {
-            console.error('Ошибка сохранения:', result.error);
-        } else {
-            console.log('Ответ сохранен успешно');
-        }
-    } catch (error) {
-        console.error('Ошибка сети:', error);
-    }
-}
-
-// Сбор данных ответа - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Сбор данных ответа
 function collectAnswerData(questionCard) {
     const answerData = {
         answer_ids: [],
@@ -468,7 +429,7 @@ function collectAnswerData(questionCard) {
     return answerData;
 }
 
-// Проверка, отвечен ли вопрос - ИСПРАВЛЕННАЯ ВЕРСИЯ
+// Проверка, отвечен ли вопрос
 function checkQuestionAnswered(questionCard) {
     // Проверяем radio и checkbox
     const checkedInputs = questionCard.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked');
@@ -491,7 +452,7 @@ function checkQuestionAnswered(questionCard) {
     return false;
 }
 
-// Сохранение ответа на вопрос - С ДОПОЛНИТЕЛЬНОЙ ОТЛАДКОЙ
+// Сохранение ответа на вопрос
 async function saveAnswer(questionCard) {
     const questionId = questionCard.dataset.questionId;
     const answerData = collectAnswerData(questionCard);
