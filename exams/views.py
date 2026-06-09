@@ -163,36 +163,36 @@ def start_exam(request, exam_id):
     if existing_exam:
         return redirect('take_exam', exam_result_id=existing_exam.id)
     
-    # Создаем новый результат экзамена
-    exam_result = ExamResult.objects.create(
-        exam=exam,
-        student=student,
-        start_time=timezone.now(),
-        status="in_progress"
-    )
-    
-    # Генерируем вопросы
+    # Генерируем вопросы до транзакции (только чтение)
     selected_questions = []
     for exam_subject in exam.exam_subjects.all():
         selected_questions.extend(get_random_questions(exam_subject))
-    
+
     if not selected_questions:
         messages.error(request, 'Не найдено вопросов для этого экзамена')
-        exam_result.delete()
         return redirect('exam_list')
-    
-    exam_result.questions.set(selected_questions)
-    
-    # Создаем записи StudentAnswer
-    for question in selected_questions:
-        sa = StudentAnswer.objects.create(
-            exam_result=exam_result,
-            question=question
+
+    # Создаем новый результат экзамена
+    with transaction.atomic():
+        exam_result = ExamResult.objects.create(
+            exam=exam,
+            student=student,
+            start_time=timezone.now(),
+            status="in_progress"
         )
-        if question.question_type in ('single_choice', 'multiple_choice'):
-            answer_ids = list(question.answers.values_list('id', flat=True))
-            random.shuffle(answer_ids)
-            AnswerOrder.objects.create(student_answer=sa, order=answer_ids)
+
+        exam_result.questions.set(selected_questions)
+
+        # Создаем записи StudentAnswer
+        for question in selected_questions:
+            sa = StudentAnswer.objects.create(
+                exam_result=exam_result,
+                question=question
+            )
+            if question.question_type in ('single_choice', 'multiple_choice'):
+                answer_ids = list(question.answers.values_list('id', flat=True))
+                random.shuffle(answer_ids)
+                AnswerOrder.objects.create(student_answer=sa, order=answer_ids)
     
     messages.success(request, f'Экзамен "{exam.name}" начат. Удачи!')
     return redirect('take_exam', exam_result_id=exam_result.id)
@@ -213,9 +213,9 @@ def take_exam(request, exam_result_id):
     
     student_answers = list(
         exam_result.student_answers.select_related(
-            'question', 'question__subject'
+            'question', 'question__subject', 'answer_order'
         ).prefetch_related(
-            'question__answers', 'selected_answers', 'answer_order'
+            'question__answers', 'selected_answers'
         )
     )
 
