@@ -268,8 +268,7 @@ def save_answer(request, exam_result_id):
         with transaction.atomic():
             if student_answer.question.question_type in ['open', 'text']:
                 student_answer.answer_text = answer_text
-                student_answer.is_correct = None
-                student_answer.points_earned = None
+                check_answer_correctness(student_answer)
             else:
                 student_answer.selected_answers.clear()
                 if answer_ids:
@@ -289,19 +288,54 @@ def save_answer(request, exam_result_id):
 def check_answer_correctness(student_answer):
     """Проверка ответа"""
     question = student_answer.question
+
+    if question.question_type in ('open', 'text'):
+        keywords = question.keywords.all()
+        if not keywords.exists():
+            student_answer.is_correct = None
+            student_answer.points_earned = 0
+            return
+
+        text = student_answer.answer_text or ''
+        matched = False
+        for kw in keywords:
+            if kw.case_sensitive:
+                matched = kw.keyword in text
+            else:
+                matched = kw.keyword.lower() in text.lower()
+            if matched:
+                break
+
+        student_answer.is_correct = matched
+        if matched:
+            exam_subject = ExamSubject.objects.filter(
+                exam=student_answer.exam_result.exam,
+                subject=question.subject
+            ).first()
+            if exam_subject:
+                if question.difficulty == 'easy':
+                    student_answer.points_earned = exam_subject.easy_points
+                elif question.difficulty == 'medium':
+                    student_answer.points_earned = exam_subject.medium_points
+                else:
+                    student_answer.points_earned = exam_subject.hard_points
+        else:
+            student_answer.points_earned = 0
+        return
+
+    # Закрытые вопросы (single_choice, multiple_choice)
     correct_answers = set(question.answers.filter(is_correct=True).values_list('id', flat=True))
     selected_answers = set(student_answer.selected_answers.values_list('id', flat=True))
-    
+
     student_answer.is_correct = (
         correct_answers == selected_answers and len(selected_answers) > 0
     )
-    
+
     if student_answer.is_correct:
         exam_subject = ExamSubject.objects.filter(
-            exam=student_answer.exam_result.exam, 
+            exam=student_answer.exam_result.exam,
             subject=question.subject
         ).first()
-        
         if exam_subject:
             if question.difficulty == 'easy':
                 student_answer.points_earned = exam_subject.easy_points
