@@ -59,6 +59,14 @@ class KeywordAutoCheckTest(TestCase):
         check_answer_correctness(sa)
         self.assertIsNone(sa.is_correct)
 
+    def test_no_keywords_open_answer_saves_to_db(self):
+        sa, question = make_open_question()
+        sa.answer_text = 'Какой-то ответ'
+        check_answer_correctness(sa)
+        sa.save()  # must not raise IntegrityError
+        sa.refresh_from_db()
+        self.assertIsNone(sa.is_correct)
+
     def test_case_insensitive_by_default(self):
         sa, question = make_open_question()
         QuestionKeyword.objects.create(question=question, keyword='ФОТОСИНТЕЗ', case_sensitive=False)

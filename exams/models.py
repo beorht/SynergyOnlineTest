@@ -222,7 +222,7 @@ class StudentAnswer(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     selected_answers = models.ManyToManyField(Answer, blank=True)  # For single/multiple choice
     answer_text = models.TextField(blank=True)  # For open questions
-    is_correct = models.BooleanField(default=False)
+    is_correct = models.BooleanField(null=True, blank=True, default=None)
     points_earned = models.IntegerField(default=0)
     answered_at = models.DateTimeField(auto_now=True)
     teacher_score = models.FloatField(null=True, blank=True, verbose_name='Балл преподавателя')
