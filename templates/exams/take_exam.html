@@ -92,7 +92,7 @@
                 {% if student_answer.question.question_type == 'single_choice' %}
                     <div class="answer-options">
                         <h6 class="text-muted mb-3">Выберите один правильный ответ:</h6>
-                        {% for answer in student_answer.question.answers.all %}
+                        {% for answer in student_answer.ordered_answers %}
                        
                         <div class="answer-option mb-2 p-2 border rounded" data-answer-type="single">
                             <label class="form-check-label w-100 mb-0 cursor-pointer">
@@ -121,7 +121,7 @@
                 {% elif student_answer.question.question_type == 'multiple_choice' %}
                     <div class="answer-options">
                         <h6 class="text-muted mb-3">Выберите все правильные ответы:</h6>
-                        {% for answer in student_answer.question.answers.all %}
+                        {% for answer in student_answer.ordered_answers %}
                         <div class="answer-option mb-2 p-2 border rounded" data-answer-type="multiple">
                             <label class="form-check-label w-100 mb-0 cursor-pointer">
                                 <input type="checkbox" 

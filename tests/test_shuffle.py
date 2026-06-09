@@ -81,3 +81,18 @@ class RecalculateScoreTest(TestCase):
         result.recalculate_score()
         result.refresh_from_db()
         self.assertEqual(result.score, 0.5)
+
+
+class AnswerShuffleTest(TestCase):
+    def test_answer_order_created_on_exam_start(self):
+        result, sa, answers = make_exam_result()
+        self.assertFalse(AnswerOrder.objects.filter(student_answer=sa).exists())
+
+    def test_shuffle_covers_all_answers(self):
+        result, sa, answers = make_exam_result()
+        answer_ids = [a.id for a in answers]
+        import random
+        shuffled = answer_ids[:]
+        random.shuffle(shuffled)
+        ao = AnswerOrder.objects.create(student_answer=sa, order=shuffled)
+        self.assertEqual(sorted(ao.order), sorted(answer_ids))

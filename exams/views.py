@@ -185,10 +185,14 @@ def start_exam(request, exam_id):
     
     # Создаем записи StudentAnswer
     for question in selected_questions:
-        StudentAnswer.objects.create(
+        sa = StudentAnswer.objects.create(
             exam_result=exam_result,
             question=question
         )
+        if question.question_type in ('single_choice', 'multiple_choice'):
+            answer_ids = list(question.answers.values_list('id', flat=True))
+            random.shuffle(answer_ids)
+            AnswerOrder.objects.create(student_answer=sa, order=answer_ids)
     
     messages.success(request, f'Экзамен "{exam.name}" начат. Удачи!')
     return redirect('take_exam', exam_result_id=exam_result.id)
@@ -207,14 +211,25 @@ def take_exam(request, exam_result_id):
     if exam_result.is_expired():
         return finalize_exam(exam_result, "time_expired")
     
-    student_answers = exam_result.student_answers.select_related(
-        'question', 
-        'question__subject'
-    ).prefetch_related(
-        'question__answers',
-        'selected_answers'
+    student_answers = list(
+        exam_result.student_answers.select_related(
+            'question', 'question__subject'
+        ).prefetch_related(
+            'question__answers', 'selected_answers', 'answer_order'
+        )
     )
-    
+
+    for sa in student_answers:
+        if sa.question.question_type in ('single_choice', 'multiple_choice'):
+            try:
+                order = sa.answer_order.order
+                answers_map = {a.id: a for a in sa.question.answers.all()}
+                sa.ordered_answers = [answers_map[aid] for aid in order if aid in answers_map]
+            except AnswerOrder.DoesNotExist:
+                sa.ordered_answers = list(sa.question.answers.all())
+        else:
+            sa.ordered_answers = []
+
     return render(request, 'exams/take_exam.html', {
         'exam_result': exam_result,
         'student_answers': student_answers,
