@@ -61,3 +61,23 @@ class AnswerOrderModelTest(TestCase):
         sa.teacher_score = None
         sa.save()
         self.assertEqual(sa.effective_points, 1)
+
+
+class RecalculateScoreTest(TestCase):
+    def test_recalculate_score_uses_effective_points(self):
+        result, sa, _ = make_exam_result()
+        sa.points_earned = 1
+        sa.teacher_score = None
+        sa.save()
+        result.recalculate_score()
+        result.refresh_from_db()
+        self.assertEqual(result.score, 1)
+
+    def test_recalculate_score_uses_teacher_score_when_set(self):
+        result, sa, _ = make_exam_result()
+        sa.points_earned = 1
+        sa.teacher_score = 0.5
+        sa.save()
+        result.recalculate_score()
+        result.refresh_from_db()
+        self.assertEqual(result.score, 0.5)

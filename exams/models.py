@@ -245,7 +245,7 @@ class StudentAnswer(models.Model):
     def effective_points(self):
         if self.teacher_score is not None:
             return self.teacher_score
-        return self.points_earned or 0
+        return self.points_earned if self.points_earned is not None else 0
 
 
 class AnswerOrder(models.Model):
@@ -257,6 +257,9 @@ class AnswerOrder(models.Model):
     class Meta:
         verbose_name = 'Порядок ответов'
         verbose_name_plural = 'Порядки ответов'
+
+    def __str__(self):
+        return f"AnswerOrder for SA#{self.student_answer_id}"
 
 
 # Модель для импорта студентов из Excel
