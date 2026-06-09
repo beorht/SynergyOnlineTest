@@ -2,8 +2,70 @@
 {% block title %}Кабинет преподавателя{% endblock %}
 {% block content %}
 <div class="main-container p-4 mt-2">
-  {% for result in results %}
-    <p>{{ result.exam.name }}</p>
-  {% endfor %}
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Результаты экзаменов</h2>
+    <a href="{% url 'teacher_logout' %}" class="btn btn-outline-secondary btn-sm">Выйти</a>
+  </div>
+
+  <div class="mb-3">
+    <span class="text-muted me-2">Сортировка:</span>
+    {% for key, label in sort_options.items %}
+      <a href="?sort={{ key }}"
+         class="btn btn-sm {% if current_sort == key %}btn-primary{% else %}btn-outline-secondary{% endif %} me-1">
+        {{ label }}
+      </a>
+    {% endfor %}
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>Студент</th>
+          <th>Экзамен</th>
+          <th>Курс</th>
+          <th>Дата сдачи</th>
+          <th>Результат</th>
+          <th>На проверке</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for result in results %}
+        <tr>
+          <td>{{ result.student.full_name }}</td>
+          <td>{{ result.exam.name }}</td>
+          <td>{{ result.exam.course.name }}</td>
+          <td>{{ result.start_time|date:"d.m.Y H:i" }}</td>
+          <td>
+            {% if result.max_score and result.max_score > 0 %}
+              <span class="badge bg-{% if result.score >= result.max_score|floatformat:0 %}success{% else %}warning{% endif %}">
+                {{ result.score }} / {{ result.max_score }}
+              </span>
+            {% else %}
+              <span class="badge bg-secondary">{{ result.score }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if result.pending_count > 0 %}
+              <span class="badge bg-warning text-dark">{{ result.pending_count }} вопр.</span>
+            {% else %}
+              <span class="text-success">&#10003;</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{% url 'teacher_review' result.id %}" class="btn btn-sm btn-outline-primary">
+              Проверить
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">Результатов нет</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}
