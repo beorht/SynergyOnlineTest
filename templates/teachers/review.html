@@ -1,9 +1,83 @@
 {% extends 'base.html' %}
-{% block title %}Проверка{% endblock %}
+{% block title %}Проверка: {{ exam_result.exam.name }}{% endblock %}
 {% block content %}
 <div class="main-container p-4 mt-2">
-  {% for sa in open_answers %}
-    <p>{{ sa.answer_text }}</p>
-  {% endfor %}
+  <div class="mb-4">
+    <a href="{% url 'teacher_dashboard' %}" class="btn btn-outline-secondary btn-sm mb-2">
+      &larr; Назад к списку
+    </a>
+    <h3>{{ exam_result.exam.name }}</h3>
+    <p class="text-muted mb-0">
+      Студент: <strong>{{ exam_result.student.full_name }}</strong> |
+      Дата: {{ exam_result.start_time|date:"d.m.Y H:i" }} |
+      Автобалл: {{ exam_result.score }} / {{ exam_result.max_score }}
+    </p>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    {% for sa in open_answers %}
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between">
+        <span><strong>{{ forloop.counter }}. {{ sa.question.text_md }}</strong></span>
+        <span>
+          <span class="badge bg-secondary">{{ sa.question.get_difficulty_display }}</span>
+          <span class="badge bg-info">макс. {{ sa.max_points }} б.</span>
+        </span>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label text-muted">Ответ студента:</label>
+          <div class="p-3 bg-light rounded">{{ sa.answer_text|default:"— нет ответа —" }}</div>
+        </div>
+
+        <div class="mb-3">
+          <small class="text-muted">Автопроверка по ключевым словам: </small>
+          {% if sa.is_correct is None %}
+            <span class="badge bg-secondary">Не проверялось</span>
+          {% elif sa.is_correct %}
+            <span class="badge bg-success">Совпадение найдено</span>
+          {% else %}
+            <span class="badge bg-danger">Совпадений нет</span>
+          {% endif %}
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Балл преподавателя (0–{{ sa.max_points }})</label>
+            <input type="number" name="score_{{ sa.id }}" class="form-control"
+                   min="0" max="{{ sa.max_points }}" step="0.5"
+                   value="{{ sa.teacher_score|default:'' }}">
+            <small class="text-muted">Оставьте пустым чтобы убрать оценку</small>
+          </div>
+          <div class="col-md-9">
+            <label class="form-label">Комментарий студенту</label>
+            <textarea name="comment_{{ sa.id }}" class="form-control" rows="2"
+                      placeholder="Необязательно...">{{ sa.teacher_comment }}</textarea>
+          </div>
+        </div>
+
+        {% if sa.reviewed_at %}
+        <small class="text-muted d-block mt-2">
+          Проверено: {{ sa.reviewed_at|date:"d.m.Y H:i" }}
+          {% if sa.reviewed_by %} — {{ sa.reviewed_by.full_name }}{% endif %}
+        </small>
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-info">
+      В этом экзамене нет открытых вопросов.
+    </div>
+    {% endfor %}
+
+    {% if open_answers %}
+    <div class="d-flex justify-content-end mt-3">
+      <button type="submit" class="btn btn-success btn-lg">
+        Сохранить оценки
+      </button>
+    </div>
+    {% endif %}
+  </form>
 </div>
 {% endblock %}
