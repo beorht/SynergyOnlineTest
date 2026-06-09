@@ -33,25 +33,41 @@ def teacher_logout(request):
 def teacher_dashboard(request):
     sort = request.GET.get('sort', 'date')
 
-    results = ExamResult.objects.exclude(
-        status='in_progress'
-    ).select_related('student', 'exam', 'exam__course').annotate(
-        pending_count=Count(
-            'student_answers',
-            filter=Q(
-                student_answers__is_correct__isnull=True,
-                student_answers__question__question_type__in=['open', 'text']
-            )
-        )
-    )
-
     sort_map = {
         'date':    '-start_time',
         'student': 'student__last_name',
         'exam':    'exam__name',
         'pending': '-pending_count',
     }
-    results = results.order_by(sort_map.get(sort, '-start_time'))
+
+    results = list(
+        ExamResult.objects.exclude(status='in_progress')
+        .select_related('student', 'exam', 'exam__course')
+        .prefetch_related('student_answers__question')
+        .annotate(
+            pending_count=Count(
+                'student_answers',
+                filter=Q(
+                    student_answers__is_correct__isnull=True,
+                    student_answers__question__question_type__in=['open', 'text']
+                )
+            )
+        )
+        .order_by(sort_map.get(sort, '-start_time'))
+    )
+
+    diff_labels = {'easy': 'Лёгкие', 'medium': 'Средние', 'hard': 'Сложные'}
+    for result in results:
+        stats = {k: {'correct': 0, 'total': 0, 'points': 0, 'label': v}
+                 for k, v in diff_labels.items()}
+        for sa in result.student_answers.all():
+            d = sa.question.difficulty
+            if d in stats:
+                stats[d]['total'] += 1
+                if sa.is_correct:
+                    stats[d]['correct'] += 1
+                stats[d]['points'] += sa.effective_points
+        result.difficulty_stats = {k: v for k, v in stats.items() if v['total'] > 0}
 
     return render(request, 'teachers/dashboard.html', {
         'results': results,
@@ -115,4 +131,45 @@ def teacher_review(request, exam_result_id):
     return render(request, 'teachers/review.html', {
         'exam_result': exam_result,
         'open_answers': open_answers,
+    })
+
+
+@staff_member_required(login_url='/teacher/login/')
+def teacher_result_detail(request, exam_result_id):
+    """Полный отчёт студента, доступный преподавателю."""
+    exam_result = get_object_or_404(ExamResult, pk=exam_result_id)
+
+    student_answers = exam_result.student_answers.select_related(
+        'question', 'question__subject'
+    ).prefetch_related('question__answers', 'selected_answers')
+
+    subject_stats = {}
+    difficulty_stats = {
+        'easy':   {'correct': 0, 'total': 0, 'points': 0, 'max_points': 0, 'label': 'Лёгкие'},
+        'medium': {'correct': 0, 'total': 0, 'points': 0, 'max_points': 0, 'label': 'Средние'},
+        'hard':   {'correct': 0, 'total': 0, 'points': 0, 'max_points': 0, 'label': 'Сложные'},
+    }
+
+    for answer in student_answers:
+        subject = answer.question.subject.name if answer.question.subject else 'Без предмета'
+        if subject not in subject_stats:
+            subject_stats[subject] = {'correct': 0, 'total': 0, 'points': 0}
+        subject_stats[subject]['total'] += 1
+        if answer.is_correct:
+            subject_stats[subject]['correct'] += 1
+        subject_stats[subject]['points'] += answer.effective_points
+
+        diff = answer.question.difficulty
+        if diff in difficulty_stats:
+            difficulty_stats[diff]['total'] += 1
+            if answer.is_correct:
+                difficulty_stats[diff]['correct'] += 1
+            difficulty_stats[diff]['points'] += answer.effective_points
+
+    return render(request, 'exams/exam_result_detail.html', {
+        'exam_result': exam_result,
+        'student_answers': student_answers,
+        'subject_stats': subject_stats,
+        'difficulty_stats': difficulty_stats,
+        'is_teacher_view': True,
     })
