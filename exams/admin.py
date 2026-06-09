@@ -6,6 +6,7 @@ from django.utils.html import format_html
 from django.urls import reverse
 from .models import *
 from .views import import_students_view
+from teachers.models import QuestionKeyword
 
 class StudentAdmin(admin.ModelAdmin):
     list_display = ['student_id', 'last_name', 'first_name', 'group', 'email', 'is_active', 'created_at']
@@ -79,12 +80,19 @@ class AnswerInline(admin.TabularInline):
     extra = 2
     fields = ['text_md', 'is_correct']
 
+class QuestionKeywordInline(admin.TabularInline):
+    model = QuestionKeyword
+    extra = 1
+    fields = ['keyword', 'case_sensitive']
+    verbose_name = 'Ключевое слово'
+    verbose_name_plural = 'Ключевые слова (для открытых вопросов)'
+
 class QuestionAdmin(admin.ModelAdmin):
     list_display = ['preview_text', 'subject', 'difficulty', 'question_type', 'answers_count', 'correct_answers_count']
     list_filter = ['difficulty', 'question_type', 'subject', 'subject__course']
     search_fields = ['text_md', 'text', 'subject__name']
-    inlines = [AnswerInline]
-    
+    inlines = [AnswerInline, QuestionKeywordInline]
+
     fieldsets = (
         ('Основная информация', {
             'fields': ('subject', 'question_type', 'difficulty')
