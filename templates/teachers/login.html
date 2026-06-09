@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Вход для преподавателей{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-4">
+    <div class="card shadow">
+      <div class="card-header text-center bg-primary text-white">
+        <h4 class="mb-0">Кабинет преподавателя</h4>
+      </div>
+      <div class="card-body p-4">
+        {% if messages %}
+          {% for msg in messages %}
+            <div class="alert alert-danger">{{ msg }}</div>
+          {% endfor %}
+        {% endif %}
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label">Логин</label>
+            <input type="text" name="username" class="form-control" required autofocus>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Пароль</label>
+            <input type="password" name="password" class="form-control" required>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Войти</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

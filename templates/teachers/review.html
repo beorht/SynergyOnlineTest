@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Проверка{% endblock %}
+{% block content %}
+<div class="main-container p-4 mt-2">
+  {% for sa in open_answers %}
+    <p>{{ sa.answer_text }}</p>
+  {% endfor %}
+</div>
+{% endblock %}
