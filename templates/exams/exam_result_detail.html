@@ -3,8 +3,23 @@
 
 {% block title %}Результаты: {{ exam_result.exam.name }}{% endblock %}
 
+{% block styles %}
+<style>
+  .result-detail-wrap { font-size: 1.125rem; }
+  .result-detail-wrap .small,
+  .result-detail-wrap small { font-size: 0.975rem; }
+  .result-detail-wrap .badge { font-size: 1rem; }
+  .result-detail-wrap th,
+  .result-detail-wrap td { font-size: 1.125rem; }
+  .result-detail-wrap .btn { font-size: 1.125rem; }
+  .result-detail-wrap h4 { font-size: 1.625rem; }
+  .result-detail-wrap h5 { font-size: 1.375rem; }
+  .result-detail-wrap h6 { font-size: 1.25rem; }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="main-container p-4 mt-4">
+<div class="main-container p-4 mt-4 result-detail-wrap">
     <!-- Заголовок результатов -->
     <div class="text-center mb-4">
         <h2><i class="fas fa-chart-line me-2"></i>Результаты экзамена</h2>
