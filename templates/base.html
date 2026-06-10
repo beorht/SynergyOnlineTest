@@ -148,7 +148,7 @@
         </div>
     </nav>
 
-    <div class="container main">
+    <div class="{% block container_class %}container{% endblock %} main">
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show mt-3" role="alert">
