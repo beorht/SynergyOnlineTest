@@ -1,9 +1,14 @@
+import io
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
+from django.http import HttpResponse
 from django.utils import timezone
 from django.db.models import Count, Q
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
 from exams.models import ExamResult, StudentAnswer, ExamSubject
 
@@ -81,6 +86,152 @@ def teacher_dashboard(request):
             'pending': 'Непроверенные первые',
         },
     })
+
+
+@staff_member_required(login_url='/teacher/login/')
+def export_results_excel(request):
+    results = list(
+        ExamResult.objects.exclude(status='in_progress')
+        .select_related('student', 'exam', 'exam__course')
+        .prefetch_related('student_answers__question')
+        .annotate(
+            pending_count=Count(
+                'student_answers',
+                filter=Q(
+                    student_answers__is_correct__isnull=True,
+                    student_answers__question__question_type__in=['open', 'text']
+                )
+            )
+        )
+        .order_by('-score')
+    )
+
+    diff_labels = {'easy': 'Лёгкие', 'medium': 'Средние', 'hard': 'Сложные'}
+    for result in results:
+        stats = {k: {'correct': 0, 'total': 0, 'points': 0} for k in diff_labels}
+        for sa in result.student_answers.all():
+            d = sa.question.difficulty
+            if d in stats:
+                stats[d]['total'] += 1
+                if sa.is_correct:
+                    stats[d]['correct'] += 1
+                stats[d]['points'] += sa.effective_points
+        result.diff_stats = stats
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Результаты экзаменов'
+
+    # Стили
+    header_font = Font(bold=True, color='FFFFFF', size=11)
+    header_fill = PatternFill('solid', fgColor='2D6A9F')
+    center = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    left = Alignment(horizontal='left', vertical='center')
+    thin = Side(style='thin', color='CCCCCC')
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+    diff_fills = {
+        'easy':   PatternFill('solid', fgColor='D4EDDA'),
+        'medium': PatternFill('solid', fgColor='FFF3CD'),
+        'hard':   PatternFill('solid', fgColor='F8D7DA'),
+    }
+
+    # Заголовки
+    headers = [
+        ('#', 4),
+        ('ID студента', 14),
+        ('Студент', 24),
+        ('Экзамен', 28),
+        ('Курс', 18),
+        ('Дата сдачи', 16),
+        ('Балл', 8),
+        ('Макс. балл', 10),
+        ('% выполнения', 13),
+        ('Лёгкие (верн/всего)', 20),
+        ('Средние (верн/всего)', 21),
+        ('Сложные (верн/всего)', 21),
+        ('На проверке', 13),
+        ('Статус', 14),
+    ]
+
+    ws.row_dimensions[1].height = 30
+    for col, (title, width) in enumerate(headers, start=1):
+        cell = ws.cell(row=1, column=col, value=title)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center
+        cell.border = border
+        ws.column_dimensions[get_column_letter(col)].width = width
+
+    ws.freeze_panes = 'A2'
+
+    # Данные
+    status_map = {'finished': 'Завершён', 'time_expired': 'Время вышло'}
+    for i, result in enumerate(results, start=1):
+        pct = round(result.score / result.max_score * 100) if result.max_score else 0
+        easy = result.diff_stats['easy']
+        medium = result.diff_stats['medium']
+        hard = result.diff_stats['hard']
+
+        row_data = [
+            i,
+            result.student.student_id,
+            result.student.full_name,
+            result.exam.name,
+            result.exam.course.name,
+            result.start_time.strftime('%d.%m.%Y %H:%M') if result.start_time else '',
+            result.score,
+            result.max_score,
+            pct,
+            f"{easy['correct']}/{easy['total']}" if easy['total'] else '—',
+            f"{medium['correct']}/{medium['total']}" if medium['total'] else '—',
+            f"{hard['correct']}/{hard['total']}" if hard['total'] else '—',
+            result.pending_count,
+            status_map.get(result.status, result.status),
+        ]
+
+        row_num = i + 1
+        ws.row_dimensions[row_num].height = 18
+        for col, value in enumerate(row_data, start=1):
+            cell = ws.cell(row=row_num, column=col, value=value)
+            cell.border = border
+            cell.alignment = center if col not in (2, 3, 4, 5) else left
+
+        # Цвет % выполнения
+        pct_cell = ws.cell(row=row_num, column=9)
+        if pct >= 80:
+            pct_cell.fill = diff_fills['easy']
+        elif pct >= 50:
+            pct_cell.fill = diff_fills['medium']
+        else:
+            pct_cell.fill = diff_fills['hard']
+
+        # Чередование фона строк
+        if i % 2 == 0:
+            row_fill = PatternFill('solid', fgColor='F5F8FC')
+            for col in range(1, len(headers) + 1):
+                cell = ws.cell(row=row_num, column=col)
+                if not cell.fill or cell.fill.fgColor.rgb in ('00000000', 'FFFFFFFF'):
+                    cell.fill = row_fill
+
+    # Итоговая строка
+    last_row = len(results) + 2
+    ws.cell(row=last_row, column=1, value='Итого').font = Font(bold=True)
+    ws.cell(row=last_row, column=1).alignment = center
+    ws.cell(row=last_row, column=7, value=sum(r.score for r in results)).font = Font(bold=True)
+    ws.cell(row=last_row, column=7).alignment = center
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+
+    filename = f"results_{timezone.now().strftime('%Y%m%d_%H%M')}.xlsx"
+    response = HttpResponse(
+        buf.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 
 @staff_member_required(login_url='/teacher/login/')
