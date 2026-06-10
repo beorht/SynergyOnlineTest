@@ -114,6 +114,10 @@ def exam_list(request):
 
         in_progress = exam.in_progress_results[0] if exam.in_progress_results else None
 
+        session_expires_at = None
+        if in_progress and in_progress.start_time:
+            session_expires_at = in_progress.start_time + timedelta(minutes=exam.duration_minutes)
+
         # CourseStudent проверка избыточна — exams уже отфильтрованы по курсам студента
         can_access = not max_attempts_reached and status == 'open'
 
@@ -123,6 +127,7 @@ def exam_list(request):
             'max_attempts_reached': max_attempts_reached,
             'can_access': can_access,
             'in_progress': in_progress,
+            'session_expires_at': session_expires_at,
             'status': status,
         })
 
@@ -230,9 +235,14 @@ def take_exam(request, exam_result_id):
         else:
             sa.ordered_answers = []
 
+    closed_answers = [sa for sa in student_answers if sa.question.question_type in ('single_choice', 'multiple_choice')]
+    open_answers = [sa for sa in student_answers if sa.question.question_type in ('open', 'text')]
+
     return render(request, 'exams/take_exam.html', {
         'exam_result': exam_result,
         'student_answers': student_answers,
+        'closed_answers': closed_answers,
+        'open_answers': open_answers,
         'time_remaining': exam_result.time_remaining()
     })
 
@@ -611,9 +621,22 @@ def get_random_questions(exam_subject):
         questions.extend(easy_questions)
     
     # Средние вопросы
-    if exam_subject.medium_count > 0:
+    if exam_subject.medium_closed_count or exam_subject.medium_open_count:
+        if exam_subject.medium_closed_count > 0:
+            questions.extend(random_subset(
+                Question.objects.filter(subject=subject, difficulty='medium',
+                                        question_type__in=('single_choice', 'multiple_choice')),
+                exam_subject.medium_closed_count
+            ))
+        if exam_subject.medium_open_count > 0:
+            questions.extend(random_subset(
+                Question.objects.filter(subject=subject, difficulty='medium',
+                                        question_type__in=('open', 'text')),
+                exam_subject.medium_open_count
+            ))
+    elif exam_subject.medium_count > 0:
         medium_questions = random_subset(
-            Question.objects.filter(subject=subject, difficulty='medium'), 
+            Question.objects.filter(subject=subject, difficulty='medium'),
             exam_subject.medium_count
         )
         questions.extend(medium_questions)

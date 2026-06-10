@@ -147,6 +147,10 @@ class ExamSubject(models.Model):
     easy_count = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     medium_count = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     hard_count = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+
+    # Раздельные счётчики средних по типу (если заданы — используются вместо medium_count)
+    medium_closed_count = models.IntegerField(default=0, validators=[MinValueValidator(0)], verbose_name="Средние закрытые")
+    medium_open_count = models.IntegerField(default=0, validators=[MinValueValidator(0)], verbose_name="Средние открытые")
     
     # Баллы за вопросы по сложности
     easy_points = models.IntegerField(default=1, validators=[MinValueValidator(0)])
@@ -158,12 +162,18 @@ class ExamSubject(models.Model):
         verbose_name = "Предмет экзамена"
         verbose_name_plural = "Предметы экзамена"
     
+    def effective_medium_count(self):
+        """Суммарное количество средних вопросов (с учётом раздельных счётчиков)."""
+        if self.medium_closed_count or self.medium_open_count:
+            return self.medium_closed_count + self.medium_open_count
+        return self.medium_count
+
     def total_questions(self):
-        return self.easy_count + self.medium_count + self.hard_count
-    
+        return self.easy_count + self.effective_medium_count() + self.hard_count
+
     def max_score(self):
-        return (self.easy_count * self.easy_points + 
-                self.medium_count * self.medium_points + 
+        return (self.easy_count * self.easy_points +
+                self.effective_medium_count() * self.medium_points +
                 self.hard_count * self.hard_points)
 
 class ExamResult(models.Model):

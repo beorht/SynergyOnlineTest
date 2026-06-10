@@ -37,6 +37,7 @@ def teacher_dashboard(request):
         'date':    '-start_time',
         'student': 'student__last_name',
         'exam':    'exam__name',
+        'score':   '-score',
         'pending': '-pending_count',
     }
 
@@ -74,6 +75,7 @@ def teacher_dashboard(request):
         'current_sort': sort,
         'sort_options': {
             'date':    'По дате',
+            'score':   'По баллам',
             'student': 'По студенту',
             'exam':    'По экзамену',
             'pending': 'Непроверенные первые',

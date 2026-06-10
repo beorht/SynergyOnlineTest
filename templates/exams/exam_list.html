@@ -80,6 +80,18 @@
                                 <a href="{% url 'take_exam' data.in_progress.id %}" class="btn btn-warning">
                                     <i class="fas fa-play me-2"></i>Продолжить экзамен
                                 </a>
+                                {% if data.session_expires_at %}
+                                <div class="mt-2">
+                                    <small class="text-muted">Сессия истекает через:</small>
+                                    <div class="session-countdown fw-bold mt-1"
+                                         data-expires="{{ data.session_expires_at|date:'c' }}">
+                                        <span class="badge bg-warning text-dark fs-6">
+                                            <i class="fas fa-hourglass-half me-1"></i>
+                                            <span class="countdown-value">...</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                {% endif %}
                             {% elif data.can_access and data.status == 'open' %}
                                 <a href="{% url 'start_exam' data.exam.id %}" class="btn btn-success">
                                     <i class="fas fa-play me-2"></i>Начать экзамен
@@ -194,11 +206,46 @@ function updateTimeUntil() {
     });
 }
 
+function updateSessionCountdowns() {
+    document.querySelectorAll('.session-countdown').forEach(el => {
+        const expires = new Date(el.dataset.expires);
+        const now = new Date();
+        const diff = expires - now;
+        const valueEl = el.querySelector('.countdown-value');
+        const badge = el.querySelector('.badge');
+
+        if (diff <= 0) {
+            valueEl.textContent = 'Время истекло';
+            badge.classList.replace('bg-warning', 'bg-danger');
+            badge.classList.remove('text-dark');
+            return;
+        }
+
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+
+        const parts = [];
+        if (h > 0) parts.push(`${h}ч`);
+        parts.push(`${String(m).padStart(2, '0')}м`);
+        parts.push(`${String(s).padStart(2, '0')}с`);
+        valueEl.textContent = parts.join(' ');
+
+        // Красный если меньше 5 минут
+        if (diff < 300000) {
+            badge.classList.replace('bg-warning', 'bg-danger');
+            badge.classList.remove('text-dark');
+        }
+    });
+}
+
 // Обновляем время каждую секунду
 updateCurrentTime();
 updateTimeUntil();
+updateSessionCountdowns();
 setInterval(updateCurrentTime, 1000);
 setInterval(updateTimeUntil, 60000);
+setInterval(updateSessionCountdowns, 1000);
 
 // Проверяем статус каждые 30 секунд для обновления страницы
 setInterval(() => {
