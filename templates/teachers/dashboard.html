@@ -6,33 +6,34 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="fas fa-chalkboard-teacher me-2"></i>Результаты экзаменов</h2>
     <div class="d-flex gap-2">
-      <a href="{% url 'export_results_excel' %}" class="btn btn-success btn-sm">
+      <a href="{% url 'export_results_excel' %}" class="btn btn-success" style="font-size:1.19rem;">
         <i class="fas fa-file-excel me-1"></i>Экспорт в Excel
       </a>
-      <a href="{% url 'teacher_logout' %}" class="btn btn-outline-secondary btn-sm">Выйти</a>
+      <a href="{% url 'teacher_logout' %}" class="btn btn-outline-secondary" style="font-size:1.19rem;">Выйти</a>
     </div>
   </div>
 
   <!-- Поиск + Сортировка -->
   <div class="row g-2 mb-3 align-items-center">
     <div class="col-md-4">
-      <div class="input-group input-group-sm">
+      <div class="input-group" style="font-size:1.19rem;">
         <span class="input-group-text"><i class="fas fa-search"></i></span>
-        <input type="text" id="search-input" class="form-control"
+        <input type="text" id="search-input" class="form-control" style="font-size:1.19rem;"
                placeholder="Поиск по имени или ID студента...">
-        <button class="btn btn-outline-secondary" id="search-clear" title="Очистить" style="display:none;">
+        <button class="btn btn-outline-secondary" id="search-clear" title="Очистить" style="display:none;font-size:1.19rem;">
           <i class="fas fa-times"></i>
         </button>
       </div>
-      <small class="text-muted ms-1">
+      <span class="text-muted ms-1" style="font-size:1.19rem;">
         Найдено: <span id="search-count">{{ results|length }}</span> из {{ results|length }}
-      </small>
+      </span>
     </div>
     <div class="col-md-8 text-md-end">
-      <span class="text-muted me-2">Сортировка:</span>
+      <span class="text-muted me-2" style="font-size:1.19rem;">Сортировка:</span>
       {% for key, label in sort_options.items %}
         <a href="?sort={{ key }}"
-           class="btn btn-sm {% if current_sort == key %}btn-primary{% else %}btn-outline-secondary{% endif %} me-1">
+           class="btn {% if current_sort == key %}btn-primary{% else %}btn-outline-secondary{% endif %} me-1"
+           style="font-size:1.19rem;">
           {{ label }}
         </a>
       {% endfor %}
@@ -67,12 +68,12 @@
             data-name="{{ result.student.full_name|lower }}"
             data-pair="{{ result.id }}"
             style="cursor:pointer;">
-          <td class="text-center text-muted small fw-semibold row-num">{{ forloop.counter }}</td>
+          <td class="text-center text-muted fw-semibold row-num" style="font-size:1.19rem;">{{ forloop.counter }}</td>
           <td class="text-muted small">
             <i class="fas fa-chevron-right toggle-icon-{{ result.id }}"></i>
           </td>
           <td>
-            <span class="badge bg-light text-dark border font-monospace">
+            <span class="badge bg-light text-dark border font-monospace" style="font-size:1.09rem;">
               {{ result.student.student_id }}
             </span>
           </td>
@@ -98,7 +99,7 @@
           <td class="text-center">
             {% with s=result.difficulty_stats.easy %}
             {% if s %}
-              <span class="badge bg-success-subtle text-success border border-success">
+              <span class="badge bg-success-subtle text-success border border-success" style="font-size:1.09rem;">
                 {{ s.correct }}/{{ s.total }}
               </span>
             {% else %}
@@ -111,7 +112,7 @@
           <td class="text-center">
             {% with s=result.difficulty_stats.medium %}
             {% if s %}
-              <span class="badge bg-warning-subtle text-warning border border-warning">
+              <span class="badge bg-warning-subtle text-warning border border-warning" style="font-size:1.09rem;">
                 {{ s.correct }}/{{ s.total }}
               </span>
             {% else %}
@@ -124,7 +125,7 @@
           <td class="text-center">
             {% with s=result.difficulty_stats.hard %}
             {% if s %}
-              <span class="badge bg-danger-subtle text-danger border border-danger">
+              <span class="badge bg-danger-subtle text-danger border border-danger" style="font-size:1.09rem;">
                 {{ s.correct }}/{{ s.total }}
               </span>
             {% else %}
@@ -136,20 +137,20 @@
           <!-- На проверке -->
           <td class="text-center">
             {% if result.pending_count > 0 %}
-              <span class="badge bg-warning text-dark">{{ result.pending_count }}</span>
+              <span class="badge bg-warning text-dark" style="font-size:1.09rem;">{{ result.pending_count }}</span>
             {% else %}
-              <span class="text-success"><i class="fas fa-check"></i></span>
+              <span class="text-success" style="font-size:1.09rem;"><i class="fas fa-check"></i></span>
             {% endif %}
           </td>
 
           <!-- Действия -->
           <td class="text-center text-nowrap" onclick="event.stopPropagation()">
             <a href="{% url 'teacher_result_detail' result.id %}"
-               class="btn btn-sm btn-outline-success me-1" title="Полный отчёт">
+               class="btn btn-outline-success me-1" style="font-size:1.09rem;" title="Полный отчёт">
               <i class="fas fa-file-alt"></i> Отчёт
             </a>
             <a href="{% url 'teacher_review' result.id %}"
-               class="btn btn-sm btn-outline-primary" title="Проверить ответы">
+               class="btn btn-outline-primary" style="font-size:1.09rem;" title="Проверить ответы">
               <i class="fas fa-pen"></i> Проверить
             </a>
           </td>
