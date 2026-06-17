@@ -21,6 +21,8 @@ staticfiles/
 # Environment variables
 .env
 .session
+.session2
+CLAUDE.md
 
 # uv
 .python-version
