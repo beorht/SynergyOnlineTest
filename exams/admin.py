@@ -4,7 +4,10 @@ from django.urls import path
 from django.shortcuts import redirect
 from django.utils.html import format_html
 from django.urls import reverse
-from .models import *
+from .models import (
+    Student, Course, CourseStudent, Subject, Question, Answer,
+    Exam, ExamSubject, ExamResult, StudentAnswer, StudentImport,
+)
 from .views import import_students_view
 from teachers.models import QuestionKeyword
 

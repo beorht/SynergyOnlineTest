@@ -11,6 +11,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 from exams.models import ExamResult, StudentAnswer, ExamSubject
+from exams.utils import compute_result_stats
 
 
 def teacher_login(request):
@@ -296,28 +297,7 @@ def teacher_result_detail(request, exam_result_id):
         'question', 'question__subject'
     ).prefetch_related('question__answers', 'selected_answers')
 
-    subject_stats = {}
-    difficulty_stats = {
-        'easy':   {'correct': 0, 'total': 0, 'points': 0, 'max_points': 0, 'label': 'Лёгкие'},
-        'medium': {'correct': 0, 'total': 0, 'points': 0, 'max_points': 0, 'label': 'Средние'},
-        'hard':   {'correct': 0, 'total': 0, 'points': 0, 'max_points': 0, 'label': 'Сложные'},
-    }
-
-    for answer in student_answers:
-        subject = answer.question.subject.name if answer.question.subject else 'Без предмета'
-        if subject not in subject_stats:
-            subject_stats[subject] = {'correct': 0, 'total': 0, 'points': 0}
-        subject_stats[subject]['total'] += 1
-        if answer.is_correct:
-            subject_stats[subject]['correct'] += 1
-        subject_stats[subject]['points'] += answer.effective_points
-
-        diff = answer.question.difficulty
-        if diff in difficulty_stats:
-            difficulty_stats[diff]['total'] += 1
-            if answer.is_correct:
-                difficulty_stats[diff]['correct'] += 1
-            difficulty_stats[diff]['points'] += answer.effective_points
+    subject_stats, difficulty_stats = compute_result_stats(student_answers)
 
     return render(request, 'exams/exam_result_detail.html', {
         'exam_result': exam_result,

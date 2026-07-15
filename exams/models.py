@@ -168,6 +168,13 @@ class ExamSubject(models.Model):
             return self.medium_closed_count + self.medium_open_count
         return self.medium_count
 
+    def points_for_difficulty(self, difficulty):
+        return {
+            'easy': self.easy_points,
+            'medium': self.medium_points,
+            'hard': self.hard_points,
+        }.get(difficulty, self.hard_points)
+
     def total_questions(self):
         return self.easy_count + self.effective_medium_count() + self.hard_count
 
