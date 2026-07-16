@@ -20,6 +20,8 @@ staticfiles/
 
 # Environment variables
 .env
+.env.server
+.env.prod
 .session
 .session2
 CLAUDE.md
@@ -45,3 +47,13 @@ build/
 # Backups
 backup/
 *.zip
+*.7z
+
+# Student data exports (contains PII)
+data_result/
+export_*.json
+docs/snrg*/
+docs/*.pdf
+docs/*.xlsx
+docs/Список*
+docs/*.~lock.*
