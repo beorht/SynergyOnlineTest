@@ -1,0 +1,15 @@
+<!-- templates/admin/_delete_modal_script.html -->
+<script>
+(function () {
+    const modalEl = document.getElementById('deleteModal');
+    if (!modalEl) return;
+    const form = document.getElementById('deleteForm');
+    const nameEl = document.getElementById('deleteTargetName');
+    modalEl.addEventListener('show.bs.modal', function (event) {
+        const trigger = event.relatedTarget;
+        if (!trigger) return;
+        form.action = trigger.getAttribute('data-delete-url');
+        nameEl.textContent = trigger.getAttribute('data-delete-name');
+    });
+})();
+</script>

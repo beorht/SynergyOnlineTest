@@ -1,0 +1,43 @@
+<!-- templates/admin/subjects/form.html -->
+{% extends 'admin/base_admin.html' %}
+{% block title %}{% if subject %}Редактирование предмета{% else %}Новый предмет{% endif %}{% endblock %}
+
+{% block admin_content %}
+<div class="main-container p-4" style="max-width:640px;">
+    <a href="{% url 'admin_subjects_list' %}" class="btn btn-outline-secondary btn-sm mb-3">
+        <i class="fas fa-arrow-left me-1"></i>К списку предметов
+    </a>
+    <h2 class="mb-4">
+        <i class="fas fa-book me-2"></i>
+        {% if subject %}Редактирование предмета{% else %}Новый предмет{% endif %}
+    </h2>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Курс</label>
+            <select name="course" class="form-select" required>
+                <option value="">— выберите курс —</option>
+                {% for course in all_courses %}
+                <option value="{{ course.id }}" {% if subject.course_id == course.id %}selected{% endif %}>{{ course.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Название предмета</label>
+            <input type="text" name="name" class="form-control" value="{{ subject.name|default:'' }}" required autofocus>
+        </div>
+        <div class="mb-4">
+            <label class="form-label">Описание</label>
+            <textarea name="description" class="form-control" rows="4">{{ subject.description|default:'' }}</textarea>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a href="{% url 'admin_subjects_list' %}" class="btn btn-outline-secondary">Отмена</a>
+            <button type="submit" class="btn btn-admin-primary">
+                <i class="fas fa-check me-1"></i>Сохранить
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

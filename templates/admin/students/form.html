@@ -1,0 +1,55 @@
+<!-- templates/admin/students/form.html -->
+{% extends 'admin/base_admin.html' %}
+{% block title %}{% if student %}Редактирование студента{% else %}Новый студент{% endif %}{% endblock %}
+
+{% block admin_content %}
+<div class="main-container p-4" style="max-width:640px;">
+    <a href="{% url 'admin_students_list' %}" class="btn btn-outline-secondary btn-sm mb-3">
+        <i class="fas fa-arrow-left me-1"></i>К списку студентов
+    </a>
+    <h2 class="mb-4">
+        <i class="fas fa-user-group me-2"></i>
+        {% if student %}Редактирование студента{% else %}Новый студент{% endif %}
+    </h2>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label">ID студента</label>
+                <input type="text" name="student_id" class="form-control font-monospace" value="{{ student.student_id|default:'' }}" required autofocus>
+                <div class="form-text">Используется студентом для входа — без пароля.</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Группа</label>
+                <input type="text" name="group" class="form-control" value="{{ student.group|default:'' }}">
+            </div>
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Имя</label>
+                <input type="text" name="first_name" class="form-control" value="{{ student.first_name|default:'' }}" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Фамилия</label>
+                <input type="text" name="last_name" class="form-control" value="{{ student.last_name|default:'' }}" required>
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" value="{{ student.email|default:'' }}">
+        </div>
+        <div class="form-check form-switch mb-4">
+            <input class="form-check-input" type="checkbox" name="is_active" id="is_active" {% if student.is_active or not student %}checked{% endif %}>
+            <label class="form-check-label" for="is_active">Аккаунт активен</label>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a href="{% url 'admin_students_list' %}" class="btn btn-outline-secondary">Отмена</a>
+            <button type="submit" class="btn btn-admin-primary">
+                <i class="fas fa-check me-1"></i>Сохранить
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

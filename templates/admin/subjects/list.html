@@ -1,0 +1,91 @@
+<!-- templates/admin/subjects/list.html -->
+{% extends 'admin/base_admin.html' %}
+{% block title %}Предметы{% endblock %}
+
+{% block admin_content %}
+<div class="main-container p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="fas fa-book me-2"></i>Предметы</h2>
+        <a href="{% url 'admin_subject_create' %}{% if selected_course_id %}?course={{ selected_course_id }}{% endif %}" class="btn btn-admin-primary">
+            <i class="fas fa-plus me-1"></i>Добавить предмет
+        </a>
+    </div>
+
+    <form method="get" class="row g-2 mb-3 align-items-center">
+        <div class="col-md-4">
+            <select name="course" class="form-select" onchange="this.form.submit()">
+                <option value="">Все курсы</option>
+                {% for course in all_courses %}
+                <option value="{{ course.id }}" {% if selected_course_id == course.id %}selected{% endif %}>{{ course.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" id="subject-search" class="form-control" placeholder="Поиск по названию...">
+            </div>
+        </div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Название</th>
+                    <th>Курс</th>
+                    <th class="text-center">Вопросов</th>
+                    <th>Распределение по сложности</th>
+                    <th class="text-center">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for subject in subjects %}
+                <tr class="subject-row" data-name="{{ subject.name|lower }}">
+                    <td><strong>{{ subject.name }}</strong></td>
+                    <td>{{ subject.course.name }}</td>
+                    <td class="text-center">
+                        <span class="badge bg-primary-subtle text-primary border border-primary">{{ subject.questions_count }}</span>
+                    </td>
+                    <td>
+                        <span class="diff-chip diff-easy">Л: {{ subject.easy_count }}</span>
+                        <span class="diff-chip diff-medium">С: {{ subject.medium_count }}</span>
+                        <span class="diff-chip diff-hard">Т: {{ subject.hard_count }}</span>
+                    </td>
+                    <td class="text-center text-nowrap">
+                        <a href="{% url 'admin_questions_list' %}?subject={{ subject.id }}" class="btn btn-sm btn-outline-secondary" title="Вопросы предмета">
+                            <i class="fas fa-circle-question"></i>
+                        </a>
+                        <a href="{% url 'admin_subject_edit' subject.id %}" class="btn btn-sm btn-outline-primary" title="Редактировать">
+                            <i class="fas fa-pen"></i>
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" title="Удалить"
+                                data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                data-delete-url="{% url 'admin_subject_delete' subject.id %}"
+                                data-delete-name="{{ subject.name }}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="5" class="text-center text-muted py-4">Предметов пока нет</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% include 'admin/_delete_modal.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('subject-search').addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('.subject-row').forEach(row => {
+        row.style.display = (!q || row.dataset.name.includes(q)) ? '' : 'none';
+    });
+});
+</script>
+{% include 'admin/_delete_modal_script.html' %}
+{% endblock %}

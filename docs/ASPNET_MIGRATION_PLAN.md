@@ -42,7 +42,15 @@ SynergyExam/
 │   │   │   ├── Teacher/Login.cshtml
 │   │   │   ├── Teacher/Dashboard.cshtml
 │   │   │   ├── Teacher/Review.cshtml
-│   │   │   └── Admin/ImportStudents.cshtml
+│   │   │   └── Admin/                       # уже спроектированы как Django-шаблоны в templates/admin/ (см. ниже)
+│   │   │       ├── _Sidebar.cshtml / BaseAdmin.cshtml
+│   │   │       ├── Dashboard.cshtml
+│   │   │       ├── Courses/List.cshtml, Form.cshtml
+│   │   │       ├── Subjects/List.cshtml, Form.cshtml
+│   │   │       ├── Questions/List.cshtml, Form.cshtml  (динамические Answer/Keyword строки)
+│   │   │       ├── Exams/List.cshtml, Form.cshtml       (динамические ExamSubject строки + live-подсчёт баллов)
+│   │   │       ├── Students/List.cshtml, Form.cshtml
+│   │   │       └── Import/Index.cshtml
 │   │   ├── wwwroot/                     # из static/ (images/…)
 │   │   ├── Program.cs                   # composition root: DI, auth schemes, EF, middleware
 │   │   ├── appsettings.json / appsettings.Development.json
@@ -125,6 +133,18 @@ Django admin бесплатно даёт CRUD+фильтры+поиск для `
 1. Вручную сделать MVC CRUD-контроллеры/Razor-формы для каждой сущности (наибольший объём работы в проекте), либо
 2. Использовать генератор `dotnet-aspnet-codegenerator` для быстрого скаффолда базового CRUD, затем дорабатывать (inline-редактирование Answer внутри Question, ExamSubject внутри Exam).
 Это стоит закладывать как отдельную, самую крупную фазу разработки.
+
+**Фронтенд-дизайн админки уже готов** (сделан заранее, до старта backend-разработки) — см. `templates/admin/`:
+- `_sidebar.html` + `base_admin.html` — общий каркас (левый сайдбар + белая "main-container" карточка контента), стилистика продолжает `templates/teachers/*` и общий `base.html` (Bootstrap 5, FontAwesome, фирменный фиолетовый градиент `#667eea → #764ba2` как акцент админки)
+- `dashboard.html` — обзор: KPI-плитки (курсы/предметы/вопросы/открытые экзамены/на проверке/студенты) + карточки быстрого перехода в разделы + последняя активность
+- `courses/list.html`, `courses/form.html` — CRUD курсов, поиск, модалка подтверждения удаления (`_delete_modal.html` + `_delete_modal_script.html`, переиспользуется во всех списках)
+- `subjects/list.html`, `subjects/form.html` — CRUD предметов, фильтр по курсу, чипы распределения по сложности (Л/С/Т — аналог Django admin `get_difficulty_distribution`)
+- `questions/list.html`, `questions/form.html` — CRUD вопросов с фильтрами (предмет/сложность/тип), в форме — динамические строки вариантов ответа (add/remove, чекбокс "правильный") и ключевых слов, переключаемые JS в зависимости от `question_type` (choice vs open/text) — аналог `AnswerInline` + `QuestionKeywordInline`
+- `exams/list.html`, `exams/form.html` — CRUD экзаменов со статус-бэйджем (открыт/ожидается/закрыт), в форме — динамические строки `ExamSubject` (кол-во/баллы по сложности) с live-пересчётом итогового числа вопросов и максимального балла на JS — аналог `ExamSubjectInline` + `Exam.max_score()`
+- `students/list.html`, `students/form.html` — CRUD студентов, поиск, фильтр по группе, переключатель активности
+- `import/index.html` — тот же импорт из Excel, что и раньше (`exams/import_students.html`), встроенный в общий каркас админки
+
+Интерактивный превью (клиентский HTML-макет с теми же классами/токенами, без бэкенда) был опубликован как Artifact для визуальной проверки дизайна до начала разработки backend.
 
 ## Фазы разработки (roadmap)
 

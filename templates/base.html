@@ -82,6 +82,123 @@
             margin: 45px auto 0;
         }
         /* До вот сюда */
+
+        /* ===== Админ-панель ===== */
+        .admin-shell {
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+        }
+        .admin-sidebar {
+            flex: 0 0 250px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 22px 0;
+            position: sticky;
+            top: 20px;
+        }
+        .admin-sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 22px 16px;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #eee;
+            font-weight: 700;
+            font-size: 1.05rem;
+            color: #4b3f8f;
+        }
+        .admin-sidebar-brand i {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-size: 1.2rem;
+        }
+        .admin-nav-group-label {
+            font-size: .72rem;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: #a5a1b8;
+            padding: 16px 22px 6px;
+            font-weight: 600;
+        }
+        .admin-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 9px 22px;
+            color: #4a4a55;
+            text-decoration: none;
+            font-size: .95rem;
+            border-left: 3px solid transparent;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .admin-nav-link i { width: 18px; text-align: center; opacity: .75; }
+        .admin-nav-link:hover { background: #f5f3ff; color: #4b3f8f; }
+        .admin-nav-link.active {
+            background: #f5f3ff;
+            color: #4b3f8f;
+            font-weight: 600;
+            border-left-color: #764ba2;
+        }
+        .admin-content { flex: 1 1 auto; min-width: 0; }
+        @media (max-width: 991px) {
+            .admin-shell { flex-direction: column; }
+            .admin-sidebar { position: static; width: 100%; }
+        }
+        .admin-stat-tile {
+            background: white;
+            border-radius: 12px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.06);
+            border-left: 4px solid #764ba2;
+            height: 100%;
+        }
+        .admin-stat-tile .stat-value { font-size: 1.9rem; font-weight: 700; line-height: 1; color: #2d2a3d; }
+        .admin-stat-tile .stat-label { color: #837f96; font-size: .85rem; margin-top: 6px; }
+        .admin-section-card {
+            display: block;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.06);
+            text-decoration: none;
+            color: inherit;
+            height: 100%;
+            transition: transform .15s, box-shadow .15s;
+            border-top: 3px solid transparent;
+        }
+        .admin-section-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,.12);
+            border-top-color: #764ba2;
+            color: inherit;
+        }
+        .admin-section-card i.section-icon {
+            font-size: 1.6rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+            display: inline-block;
+        }
+        .admin-section-card h6 { font-weight: 700; margin-bottom: 4px; }
+        .admin-section-card p { color: #837f96; font-size: .85rem; margin-bottom: 0; }
+        .btn-admin-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+        }
+        .btn-admin-primary:hover { color: white; filter: brightness(1.05); }
+        .diff-chip { font-size: .78rem; padding: .25em .55em; border-radius: 6px; font-weight: 600; }
+        .diff-chip.diff-easy { background: #d4edda; color: #1e7e34; }
+        .diff-chip.diff-medium { background: #fff3cd; color: #8a6d1a; }
+        .diff-chip.diff-hard { background: #f8d7da; color: #a52834; }
+        .inline-formset-row { border: 1px solid #e6e3f0; border-radius: 10px; padding: 14px; margin-bottom: 12px; background: #fbfaff; }
+        .inline-formset-row .remove-row-btn { color: #c0392b; }
     </style>
     {% block styles %}{% endblock %}
 </head>

@@ -1,0 +1,46 @@
+<!-- templates/admin/_sidebar.html -->
+{% load i18n %}
+<aside class="admin-sidebar">
+    <div class="admin-sidebar-brand">
+        <i class="fas fa-diagram-project"></i> Админ-панель
+    </div>
+    <nav class="admin-nav">
+        <a class="admin-nav-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}"
+           href="{% url 'admin_dashboard' %}">
+            <i class="fas fa-gauge-high"></i> Обзор
+        </a>
+
+        <div class="admin-nav-group-label">Учебный план</div>
+        <a class="admin-nav-link {% if 'admin_course' in request.resolver_match.url_name %}active{% endif %}"
+           href="{% url 'admin_courses_list' %}">
+            <i class="fas fa-graduation-cap"></i> Курсы
+        </a>
+        <a class="admin-nav-link {% if 'admin_subject' in request.resolver_match.url_name %}active{% endif %}"
+           href="{% url 'admin_subjects_list' %}">
+            <i class="fas fa-book"></i> Предметы
+        </a>
+        <a class="admin-nav-link {% if 'admin_question' in request.resolver_match.url_name %}active{% endif %}"
+           href="{% url 'admin_questions_list' %}">
+            <i class="fas fa-circle-question"></i> Вопросы
+        </a>
+
+        <div class="admin-nav-group-label">Экзамены</div>
+        <a class="admin-nav-link {% if 'admin_exam' in request.resolver_match.url_name %}active{% endif %}"
+           href="{% url 'admin_exams_list' %}">
+            <i class="fas fa-file-pen"></i> Экзамены
+        </a>
+        <a class="admin-nav-link" href="{% url 'teacher_dashboard' %}">
+            <i class="fas fa-chart-column"></i> Результаты
+        </a>
+
+        <div class="admin-nav-group-label">Студенты</div>
+        <a class="admin-nav-link {% if 'admin_student' in request.resolver_match.url_name %}active{% endif %}"
+           href="{% url 'admin_students_list' %}">
+            <i class="fas fa-user-group"></i> Студенты
+        </a>
+        <a class="admin-nav-link {% if request.resolver_match.url_name == 'admin_import_index' %}active{% endif %}"
+           href="{% url 'admin_import_index' %}">
+            <i class="fas fa-file-import"></i> Импорт из Excel
+        </a>
+    </nav>
+</aside>

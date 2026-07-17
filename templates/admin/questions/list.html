@@ -1,0 +1,123 @@
+<!-- templates/admin/questions/list.html -->
+{% extends 'admin/base_admin.html' %}
+{% block title %}Вопросы{% endblock %}
+
+{% block admin_content %}
+<div class="main-container p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="fas fa-circle-question me-2"></i>Вопросы</h2>
+        <a href="{% url 'admin_question_create' %}{% if selected_subject_id %}?subject={{ selected_subject_id }}{% endif %}" class="btn btn-admin-primary">
+            <i class="fas fa-plus me-1"></i>Добавить вопрос
+        </a>
+    </div>
+
+    <form method="get" class="row g-2 mb-3 align-items-center">
+        <div class="col-md-3">
+            <select name="subject" class="form-select" onchange="this.form.submit()">
+                <option value="">Все предметы</option>
+                {% for subject in all_subjects %}
+                <option value="{{ subject.id }}" {% if selected_subject_id == subject.id %}selected{% endif %}>{{ subject.course.name }} — {{ subject.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select name="difficulty" class="form-select" onchange="this.form.submit()">
+                <option value="">Любая сложность</option>
+                <option value="easy" {% if selected_difficulty == 'easy' %}selected{% endif %}>Лёгкий</option>
+                <option value="medium" {% if selected_difficulty == 'medium' %}selected{% endif %}>Средний</option>
+                <option value="hard" {% if selected_difficulty == 'hard' %}selected{% endif %}>Сложный</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <select name="type" class="form-select" onchange="this.form.submit()">
+                <option value="">Любой тип</option>
+                <option value="single_choice" {% if selected_type == 'single_choice' %}selected{% endif %}>Один ответ</option>
+                <option value="multiple_choice" {% if selected_type == 'multiple_choice' %}selected{% endif %}>Несколько ответов</option>
+                <option value="open" {% if selected_type == 'open' %}selected{% endif %}>Открытый</option>
+                <option value="text" {% if selected_type == 'text' %}selected{% endif %}>Текстовый</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" id="question-search" class="form-control" placeholder="Поиск по тексту вопроса...">
+            </div>
+        </div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Текст вопроса</th>
+                    <th>Предмет</th>
+                    <th class="text-center">Сложность</th>
+                    <th class="text-center">Тип</th>
+                    <th class="text-center">Ответов</th>
+                    <th class="text-center">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for question in questions %}
+                <tr class="question-row" data-text="{{ question.text_md|lower }}">
+                    <td>{{ question.text_md|truncatechars:70 }}</td>
+                    <td class="text-nowrap">{{ question.subject.name }}</td>
+                    <td class="text-center">
+                        {% if question.difficulty == 'easy' %}
+                            <span class="diff-chip diff-easy">Лёгкий</span>
+                        {% elif question.difficulty == 'medium' %}
+                            <span class="diff-chip diff-medium">Средний</span>
+                        {% else %}
+                            <span class="diff-chip diff-hard">Сложный</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if question.question_type == 'single_choice' %}
+                            <span class="badge bg-info-subtle text-info border border-info">Один ответ</span>
+                        {% elif question.question_type == 'multiple_choice' %}
+                            <span class="badge bg-info-subtle text-info border border-info">Несколько</span>
+                        {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary">Открытый</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if question.question_type == 'single_choice' or question.question_type == 'multiple_choice' %}
+                            {{ question.correct_answers_count }}/{{ question.answers_count }}
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-nowrap">
+                        <a href="{% url 'admin_question_edit' question.id %}" class="btn btn-sm btn-outline-primary" title="Редактировать">
+                            <i class="fas fa-pen"></i>
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" title="Удалить"
+                                data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                data-delete-url="{% url 'admin_question_delete' question.id %}"
+                                data-delete-name="{{ question.text_md|truncatechars:40 }}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">Вопросов не найдено</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% include 'admin/_delete_modal.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('question-search').addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('.question-row').forEach(row => {
+        row.style.display = (!q || row.dataset.text.includes(q)) ? '' : 'none';
+    });
+});
+</script>
+{% include 'admin/_delete_modal_script.html' %}
+{% endblock %}

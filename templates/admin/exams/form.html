@@ -1,0 +1,202 @@
+<!-- templates/admin/exams/form.html -->
+{% extends 'admin/base_admin.html' %}
+{% block title %}{% if exam %}Редактирование экзамена{% else %}Новый экзамен{% endif %}{% endblock %}
+
+{% block admin_content %}
+<div class="main-container p-4" style="max-width:960px;">
+    <a href="{% url 'admin_exams_list' %}" class="btn btn-outline-secondary btn-sm mb-3">
+        <i class="fas fa-arrow-left me-1"></i>К списку экзаменов
+    </a>
+    <h2 class="mb-4">
+        <i class="fas fa-file-pen me-2"></i>
+        {% if exam %}Редактирование экзамена{% else %}Новый экзамен{% endif %}
+    </h2>
+
+    <form method="post" id="exam-form">
+        {% csrf_token %}
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <label class="form-label">Курс</label>
+                <select name="course" class="form-select" required>
+                    <option value="">— выберите курс —</option>
+                    {% for course in all_courses %}
+                    <option value="{{ course.id }}" {% if exam.course_id == course.id %}selected{% endif %}>{{ course.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Название экзамена</label>
+                <input type="text" name="name" class="form-control" value="{{ exam.name|default:'' }}" required>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Описание</label>
+            <textarea name="description" class="form-control" rows="2">{{ exam.description|default:'' }}</textarea>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <label class="form-label">Открытие</label>
+                <input type="datetime-local" name="open_time" class="form-control" value="{{ exam.open_time|date:'Y-m-d\TH:i' }}" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Закрытие</label>
+                <input type="datetime-local" name="close_time" class="form-control" value="{{ exam.close_time|date:'Y-m-d\TH:i' }}" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Продолжительность (мин)</label>
+                <input type="number" name="duration_minutes" class="form-control" min="1" max="300" value="{{ exam.duration_minutes|default:60 }}" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Попыток разрешено</label>
+                <input type="number" name="attempts_allowed" class="form-control" min="1" max="5" value="{{ exam.attempts_allowed|default:1 }}" required>
+            </div>
+        </div>
+
+        <!-- Предметы экзамена (ExamSubject) -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0"><i class="fas fa-layer-group me-2 text-muted"></i>Состав экзамена по предметам</h6>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="add-examsubject-btn">
+                <i class="fas fa-plus me-1"></i>Добавить предмет
+            </button>
+        </div>
+
+        <div id="examsubjects-list">
+            {% for es in exam.exam_subjects.all %}
+            <div class="inline-formset-row examsubject-row">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Предмет</label>
+                        <select name="es_subject_{{ forloop.counter0 }}" class="form-select form-select-sm">
+                            {% for subject in all_subjects %}
+                            <option value="{{ subject.id }}" {% if es.subject_id == subject.id %}selected{% endif %}>{{ subject.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small diff-chip diff-easy">Лёгкие: кол-во / балл</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" min="0" name="es_easy_count_{{ forloop.counter0 }}" class="form-control es-input" value="{{ es.easy_count }}">
+                            <input type="number" min="0" name="es_easy_points_{{ forloop.counter0 }}" class="form-control es-input" value="{{ es.easy_points }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small diff-chip diff-medium">Средние: кол-во / балл</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" min="0" name="es_medium_count_{{ forloop.counter0 }}" class="form-control es-input" value="{{ es.medium_count }}">
+                            <input type="number" min="0" name="es_medium_points_{{ forloop.counter0 }}" class="form-control es-input" value="{{ es.medium_points }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small diff-chip diff-hard">Сложные: кол-во / балл</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" min="0" name="es_hard_count_{{ forloop.counter0 }}" class="form-control es-input" value="{{ es.hard_count }}">
+                            <input type="number" min="0" name="es_hard_points_{{ forloop.counter0 }}" class="form-control es-input" value="{{ es.hard_points }}">
+                        </div>
+                    </div>
+                    <div class="col-md-2 text-muted small">
+                        Итого: <strong class="es-row-total">0</strong> вопр. / <strong class="es-row-score">0</strong> б.
+                    </div>
+                    <div class="col-md-1 text-end">
+                        <button type="button" class="btn btn-sm remove-row-btn" onclick="this.closest('.examsubject-row').remove(); recalcExamTotals();">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-muted small mb-3">Предметы ещё не добавлены — нажмите «Добавить предмет».</div>
+            {% endfor %}
+        </div>
+
+        <div class="alert alert-light border d-flex justify-content-between align-items-center mt-2">
+            <span><i class="fas fa-calculator me-2 text-muted"></i>Всего в экзамене:</span>
+            <span><strong id="exam-total-questions">0</strong> вопросов, максимум <strong id="exam-total-score">0</strong> баллов</span>
+        </div>
+
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{% url 'admin_exams_list' %}" class="btn btn-outline-secondary">Отмена</a>
+            <button type="submit" class="btn btn-admin-primary">
+                <i class="fas fa-check me-1"></i>Сохранить экзамен
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let esIndex = document.querySelectorAll('.examsubject-row').length;
+const subjectOptions = `{% for subject in all_subjects %}<option value="{{ subject.id }}">{{ subject.name }}</option>{% endfor %}`;
+
+document.getElementById('add-examsubject-btn').addEventListener('click', function () {
+    const row = document.createElement('div');
+    row.className = 'inline-formset-row examsubject-row';
+    row.innerHTML = `
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Предмет</label>
+                <select name="es_subject_${esIndex}" class="form-select form-select-sm">${subjectOptions}</select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small diff-chip diff-easy">Лёгкие: кол-во / балл</label>
+                <div class="input-group input-group-sm">
+                    <input type="number" min="0" name="es_easy_count_${esIndex}" class="form-control es-input" value="0">
+                    <input type="number" min="0" name="es_easy_points_${esIndex}" class="form-control es-input" value="1">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small diff-chip diff-medium">Средние: кол-во / балл</label>
+                <div class="input-group input-group-sm">
+                    <input type="number" min="0" name="es_medium_count_${esIndex}" class="form-control es-input" value="0">
+                    <input type="number" min="0" name="es_medium_points_${esIndex}" class="form-control es-input" value="2">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small diff-chip diff-hard">Сложные: кол-во / балл</label>
+                <div class="input-group input-group-sm">
+                    <input type="number" min="0" name="es_hard_count_${esIndex}" class="form-control es-input" value="0">
+                    <input type="number" min="0" name="es_hard_points_${esIndex}" class="form-control es-input" value="3">
+                </div>
+            </div>
+            <div class="col-md-2 text-muted small">
+                Итого: <strong class="es-row-total">0</strong> вопр. / <strong class="es-row-score">0</strong> б.
+            </div>
+            <div class="col-md-1 text-end">
+                <button type="button" class="btn btn-sm remove-row-btn" onclick="this.closest('.examsubject-row').remove(); recalcExamTotals();">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>`;
+    document.getElementById('examsubjects-list').appendChild(row);
+    esIndex++;
+    bindRowInputs(row);
+    recalcExamTotals();
+});
+
+function bindRowInputs(row) {
+    row.querySelectorAll('.es-input').forEach(input => input.addEventListener('input', recalcExamTotals));
+}
+
+function recalcExamTotals() {
+    let totalQ = 0, totalScore = 0;
+    document.querySelectorAll('.examsubject-row').forEach(row => {
+        const vals = row.querySelectorAll('.es-input');
+        const [ec, ep, mc, mp, hc, hp] = Array.from(vals).map(i => parseFloat(i.value) || 0);
+        const rowQ = ec + mc + hc;
+        const rowScore = ec * ep + mc * mp + hc * hp;
+        row.querySelector('.es-row-total').textContent = rowQ;
+        row.querySelector('.es-row-score').textContent = rowScore;
+        totalQ += rowQ;
+        totalScore += rowScore;
+    });
+    document.getElementById('exam-total-questions').textContent = totalQ;
+    document.getElementById('exam-total-score').textContent = totalScore;
+}
+
+document.querySelectorAll('.examsubject-row').forEach(bindRowInputs);
+recalcExamTotals();
+</script>
+{% endblock %}

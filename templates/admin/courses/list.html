@@ -1,0 +1,83 @@
+<!-- templates/admin/courses/list.html -->
+{% extends 'admin/base_admin.html' %}
+{% block title %}Курсы{% endblock %}
+
+{% block admin_content %}
+<div class="main-container p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Курсы</h2>
+        <a href="{% url 'admin_course_create' %}" class="btn btn-admin-primary">
+            <i class="fas fa-plus me-1"></i>Добавить курс
+        </a>
+    </div>
+
+    <div class="row g-2 mb-3">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" id="course-search" class="form-control" placeholder="Поиск по названию...">
+            </div>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Название</th>
+                    <th>Описание</th>
+                    <th class="text-center">Предметов</th>
+                    <th class="text-center">Студентов</th>
+                    <th>Создан</th>
+                    <th class="text-center">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for course in courses %}
+                <tr class="course-row" data-name="{{ course.name|lower }}">
+                    <td><strong>{{ course.name }}</strong></td>
+                    <td class="text-muted">{{ course.description|truncatechars:60|default:"—" }}</td>
+                    <td class="text-center">
+                        <span class="badge bg-primary-subtle text-primary border border-primary">{{ course.subjects_count }}</span>
+                    </td>
+                    <td class="text-center">
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary">{{ course.students_count }}</span>
+                    </td>
+                    <td class="text-nowrap text-muted">{{ course.created_at|date:"d.m.Y" }}</td>
+                    <td class="text-center text-nowrap">
+                        <a href="{% url 'admin_subjects_list' %}?course={{ course.id }}" class="btn btn-sm btn-outline-secondary" title="Предметы курса">
+                            <i class="fas fa-book"></i>
+                        </a>
+                        <a href="{% url 'admin_course_edit' course.id %}" class="btn btn-sm btn-outline-primary" title="Редактировать">
+                            <i class="fas fa-pen"></i>
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" title="Удалить"
+                                data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                data-delete-url="{% url 'admin_course_delete' course.id %}"
+                                data-delete-name="{{ course.name }}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" class="text-center text-muted py-4">Курсов пока нет</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% include 'admin/_delete_modal.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('course-search').addEventListener('input', function () {
+    const q = this.value.trim().toLowerCase();
+    document.querySelectorAll('.course-row').forEach(row => {
+        row.style.display = (!q || row.dataset.name.includes(q)) ? '' : 'none';
+    });
+});
+</script>
+{% include 'admin/_delete_modal_script.html' %}
+{% endblock %}
