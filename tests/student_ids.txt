@@ -1,7 +1,0 @@
-# Заполните реальными student_id из вашей БД
-# Одна строка — один ID, строки с # игнорируются
-# Пример генерации из Django shell:
-#   python manage.py shell -c "from exams.models import Student; print('\n'.join(Student.objects.values_list('student_id', flat=True)[:200]))"
-STU001
-STU002
-STU003
